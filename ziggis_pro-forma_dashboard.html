@@ -1,0 +1,1906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ziggi's Site Pro Forma — Financial Projection</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --tan:        #CFA571;
+    --tan-light:  #f5ead8;
+    --tan-dark:   #a07840;
+    --brown:      #441D1F;
+    --brown-mid:  #6b3033;
+    --blue:       #72B1CB;
+    --blue-light: #e4f2f8;
+    --blue-dark:  #3d7fa0;
+    --bg:         #f7f4f0;
+    --surface:    #ffffff;
+    --surface2:   #f0ebe3;
+    --border:     #e2d9ce;
+    --green:      #2a7a4b;
+    --green-bg:   #eaf5ee;
+    --red:        #c0392b;
+    --red-bg:     #fdecea;
+    --amber:      #a05c10;
+    --amber-bg:   #fdf3e3;
+    --text:       #1e1410;
+    --text-muted: #7a6a5a;
+    --text-dim:   #4a3a2a;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); font-size: 13px; display: flex; flex-direction: column; }
+
+  /* ── Header ── */
+  .top-bar {
+    background: var(--tan);
+    color: var(--brown);
+    padding: 0 24px;
+    height: 54px;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(160,120,64,0.4);
+    z-index: 200;
+  }
+  .top-bar-left { display: flex; align-items: center; gap: 14px; }
+  .top-bar h1 { font-family: 'Raleway', sans-serif; font-size: 17px; font-weight: 700; letter-spacing: -0.2px; color: var(--brown); }
+  .top-bar h1 span { color: var(--brown); opacity: 0.8; }
+  .top-bar-divider { width: 1px; height: 20px; background: rgba(68,29,31,0.3); }
+  .top-bar-sub { font-size: 12px; color: rgba(68,29,31,0.8); }
+  .top-bar-right { display: flex; gap: 8px; align-items: center; }
+  .pill {
+    background: rgba(68,29,31,0.12); border: 1px solid rgba(68,29,31,0.25);
+    border-radius: 20px; padding: 3px 11px; font-size: 11px; color: var(--brown);
+  }
+  .pill.tan { background: rgba(68,29,31,0.18); border-color: rgba(68,29,31,0.35); color: var(--brown); }
+
+  /* ── Tab bar ── */
+  .tab-bar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 0 0 0 280px; display: flex; flex-shrink: 0;
+  }
+  .tab-btn {
+    font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500;
+    padding: 10px 18px; background: none; border: none;
+    color: var(--text-muted); cursor: pointer;
+    border-bottom: 2px solid transparent; transition: color 0.15s;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--tan-dark); border-bottom-color: var(--tan); }
+
+  /* ── Body layout: sidebar + main ── */
+  .body-wrap { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── Fixed sidebar ── */
+  .sidebar {
+    width: 280px; flex-shrink: 0;
+    background: var(--tan);
+    color: var(--brown);
+    overflow-y: auto;
+    padding: 10px 14px 16px;
+    display: flex; flex-direction: column; gap: 0;
+  }
+  .sb-section { margin-bottom: 5px; }
+  .sb-section-label {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: rgba(68,29,31,0.85);
+    margin-bottom: 6px; padding-bottom: 3px;
+    border-bottom: 1px solid rgba(68,29,31,0.2);
+  }
+  .sb-control { margin-bottom: 4px; }
+  .sb-ctrl-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+  .sb-ctrl-name { font-size: 11px; color: var(--brown); font-weight: 500; }
+  .sb-ctrl-val {
+    font-size: 12px; font-weight: 600; color: #fff;
+    background: #72B1CB; border-radius: 4px;
+    padding: 1px 8px; min-width: 48px; text-align: center;
+    font-family: 'Inter', sans-serif;
+  }
+  .sb-ctrl-val.warn { background: #72B1CB; color: #fff; }
+  .sb-ctrl-val.ok   { background: #72B1CB; color: #fff; }
+
+
+  .sb-val-input {
+    cursor: text; border: none; outline: none;
+    width: 62px; text-align: center;
+    font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
+  }
+  .sb-val-input:focus { box-shadow: 0 0 0 2px rgba(68,29,31,0.35); }
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 3px;
+    background: rgba(68,29,31,0.2); border-radius: 2px; outline: none; cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--brown); border: 2px solid var(--tan);
+    box-shadow: 0 1px 4px rgba(68,29,31,0.35); cursor: pointer;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--brown); border: 2px solid var(--tan); cursor: pointer;
+  }
+
+  .sb-divider { height: 1px; background: rgba(68,29,31,0.15); margin: 2px 0 6px; }
+
+  /* Toggle */
+  .tog-row { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
+  .tog-label { font-size: 11px; color: var(--brown); font-weight: 500; }
+  .toggle {
+    position: relative; width: 36px; height: 19px;
+    background: rgba(68,29,31,0.25); border-radius: 10px;
+    cursor: pointer; transition: background 0.2s; flex-shrink: 0;
+  }
+  .toggle.on { background: var(--green); }
+  .toggle::after {
+    content: ''; position: absolute; width: 13px; height: 13px;
+    border-radius: 50%; background: #fff; top: 3px; left: 3px;
+    transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  }
+  .toggle.on::after { transform: translateX(17px); }
+
+  /* ── Main content ── */
+  .main { flex: 1; overflow-y: auto; padding: 20px 24px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── KPI strip ── */
+  .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 16px; }
+  .kpi-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+    box-shadow: 0 1px 3px rgba(68,29,31,0.06);
+  }
+  .kpi-card.accent { background: var(--tan); border-color: var(--tan-dark); }
+  .kpi-card.accent .kpi-label { color: rgba(68,29,31,0.6); }
+  .kpi-card.accent .kpi-val   { color: var(--brown); }
+  .kpi-card.accent .kpi-sub   { color: rgba(68,29,31,0.5); }
+  .kpi-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 4px; }
+  .kpi-val { font-size: 23px; font-weight: 700; font-family: 'Inter', sans-serif; color: var(--text); line-height: 1; margin-bottom: 3px; }
+  .kpi-val.pos { color: var(--green); }
+  .kpi-val.neg { color: var(--red); }
+  .kpi-sub { font-size: 11px; color: var(--text-muted); }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    box-shadow: 0 1px 3px rgba(68,29,31,0.05);
+    margin-bottom: 12px;
+  }
+  .card-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+  .card-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .card-sub { font-size: 11px; color: var(--text-muted); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* ── P&L table ── */
+  .pnl-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .pnl-table tr td { padding: 5px 0; border-bottom: 1px solid var(--surface2); color: var(--text-dim); }
+  .pnl-table tr td:last-child { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+  .pnl-table .sub td { padding-left: 18px; font-size: 12px; color: var(--text-muted); }
+  .pnl-table .sub td:last-child { color: var(--text-muted); }
+  .pnl-table .total td { font-weight: 600; background: var(--surface2); padding: 5px 8px; font-size: 13px; }
+  .pnl-table .total td:first-child { border-radius: 4px 0 0 4px; }
+  .pnl-table .total td:last-child  { border-radius: 0 4px 4px 0; }
+  .pnl-table .net td { font-weight: 700; font-size: 14px; padding: 6px 8px; color: var(--blue-dark); background: var(--blue-light); }
+  .pnl-table .net td.neg { background: var(--red-bg); color: var(--red); }
+  .pnl-table .net td:first-child { border-radius: 4px 0 0 4px; }
+  .pnl-table .net td:last-child  { border-radius: 0 4px 4px 0; }
+  .pnl-table .spacer td { border: none; height: 5px; }
+
+  /* ── Flag boxes ── */
+  .flag-box {
+    font-size: 11.5px; line-height: 1.55;
+    border-left: 3px solid; border-radius: 0 6px 6px 0;
+    padding: 8px 12px; margin-bottom: 10px;
+  }
+  .flag-box.warn { background: var(--amber-bg); border-color: var(--tan-dark); color: #6b3a0a; }
+  .flag-box.ok   { background: var(--green-bg); border-color: var(--green); color: #14532d; }
+  .flag-box.info { background: var(--blue-light); border-color: var(--blue); color: var(--blue-dark); }
+
+  /* ── Scenario bars ── */
+  .sc-item { margin-bottom: 10px; }
+  .sc-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .sc-name { font-size: 12px; color: var(--text-dim); }
+  .sc-amt { font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif; }
+  .sc-amt.pos { color: var(--green); }
+  .sc-amt.neg { color: var(--red); }
+  .sc-track { height: 26px; background: var(--surface2); border-radius: 5px; overflow: hidden; }
+  .sc-fill {
+    height: 100%; border-radius: 5px;
+    display: flex; align-items: center; padding-left: 9px;
+    font-size: 11px; font-weight: 500;
+    transition: width 0.35s cubic-bezier(.4,0,.2,1);
+  }
+
+  /* ── Assumptions grid ── */
+  .asmp-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .asmp-card {
+    background: var(--surface2); border-radius: 8px; padding: 12px 14px;
+    border-left: 3px solid var(--border);
+  }
+  .asmp-card.flag { border-left-color: var(--tan); }
+  .asmp-card.ok   { border-left-color: var(--green); }
+  .asmp-card.note { border-left-color: var(--blue); }
+  .asmp-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 4px; }
+  .asmp-val { font-size: 18px; font-weight: 700; font-family: 'Inter', sans-serif; color: var(--text); margin-bottom: 3px; }
+  .asmp-note { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+
+  .chart-wrap { position: relative; width: 100%; }
+
+  /* Legend row */
+  .edit-hint { font-size: 10px; color: var(--tan-dark); opacity: 0.7; margin-left: 3px; }
+
+  /* Category info tooltip */
+  .info-dot {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 13px; height: 13px; border-radius: 50%;
+    background: var(--tan); color: #fff; font-size: 9px; font-weight: 700;
+    font-style: normal; cursor: help; margin-left: 5px; position: relative;
+    vertical-align: middle; font-family: 'Inter', sans-serif; line-height: 1;
+  }
+  .info-dot .tip {
+    visibility: hidden; opacity: 0; position: absolute; bottom: 145%; left: -4px;
+    width: 250px; background: var(--brown); color: #f5ead8;
+    font-size: 10.5px; font-weight: 400; line-height: 1.55;
+    padding: 9px 11px; border-radius: 7px; z-index: 400;
+    box-shadow: 0 5px 16px rgba(68,29,31,0.32); text-align: left;
+    white-space: normal; transition: opacity 0.12s;
+  }
+  .info-dot .tip::after {
+    content: ''; position: absolute; top: 100%; left: 9px;
+    border: 5px solid transparent; border-top-color: var(--brown);
+  }
+  .info-dot .tip b { color: #fff; font-weight: 600; }
+  .info-dot:hover .tip { visibility: visible; opacity: 1; }
+
+  .pnl-input {
+    width: 100%; text-align: right; border: none;
+    background: var(--tan-light);
+    font-family: 'Inter', sans-serif; font-size: 12.5px; color: var(--text-muted);
+    font-variant-numeric: tabular-nums; padding: 1px 6px; outline: none;
+    border-bottom: 1px dashed var(--tan-dark); border-radius: 3px;
+    cursor: text;
+  }
+  .pnl-input:focus { border-bottom-color: var(--tan-dark); color: var(--text); background: #ecdbb8; border-radius: 3px; padding: 1px 6px; }
+  .pnl-input::-webkit-inner-spin-button, .pnl-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  .chart-tab-btn {
+    font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500;
+    padding: 3px 10px; border-radius: 4px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted);
+    transition: all 0.15s;
+  }
+  .chart-tab-btn.active { background: var(--tan); border-color: var(--tan-dark); color: var(--brown); font-weight: 600; }
+  .chart-tab-btn:hover:not(.active) { background: var(--border); color: var(--text); }
+
+  .legend-row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 11px; color: var(--text-muted); }
+  .leg-dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+
+  /* ── Loan Details ── */
+  .ln-struct-btn {
+    flex: 1; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
+    padding: 9px 12px; border-radius: 7px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted);
+    transition: all 0.15s;
+  }
+  .ln-struct-btn.active { background: var(--tan); border-color: var(--tan-dark); color: var(--brown); }
+  .ln-struct-btn:hover:not(.active) { background: var(--border); color: var(--text); }
+  .ln-field-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  .ln-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 6px; }
+  .ln-field { display: flex; flex-direction: column; gap: 4px; }
+  .ln-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+  .ln-input {
+    border: 1px solid var(--border); border-radius: 6px; background: var(--tan-light);
+    font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; color: var(--text);
+    padding: 7px 10px; outline: none; font-variant-numeric: tabular-nums; width: 100%;
+  }
+  .ln-input:focus { border-color: var(--tan-dark); background: #ecdbb8; }
+  .ln-input.big { font-size: 18px; max-width: 180px; text-align: right; }
+  .ln-input::-webkit-inner-spin-button, .ln-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .ln-subtitle {
+    font-size: 11px; font-weight: 700; color: var(--brown); text-transform: uppercase;
+    letter-spacing: 0.05em; margin: 12px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border);
+  }
+  .ln-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .ln-table th {
+    text-align: right; font-size: 9.5px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--text-muted); padding: 4px 8px; border-bottom: 1px solid var(--border);
+  }
+  .ln-table th:first-child { text-align: left; }
+  .ln-table td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--surface2); color: var(--text-dim); font-variant-numeric: tabular-nums; }
+  .ln-table td:first-child { text-align: left; color: var(--text); font-weight: 500; }
+  .ln-table .ln-pmt { font-weight: 700; color: var(--blue-dark); }
+  .ln-table .ln-down td { color: var(--text-muted); font-style: italic; }
+  .ln-table .ln-total td { font-weight: 700; background: var(--blue-light); padding: 7px 8px; color: var(--blue-dark); border-bottom: none; }
+  .ln-table .ln-total td:first-child { border-radius: 4px 0 0 4px; color: var(--blue-dark); }
+  .ln-table .ln-total td:last-child { border-radius: 0 4px 4px 0; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="top-bar">
+  <div class="top-bar-left">
+    <h1>Ziggi's <span>Site Pro Forma</span></h1>
+    <div class="top-bar-divider"></div>
+    <span class="top-bar-sub">Site Financial Projection</span>
+  </div>
+  <div class="top-bar-right">
+    <span class="pill">Franchisee Financial Model</span>
+    <span class="pill tan">Projection Template</span>
+  </div>
+</header>
+
+<!-- Tab bar (offset right of sidebar) -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('pnl',this)">Income Statement</button>
+  <button class="tab-btn" onclick="showTab('loan',this)">Loan Details</button>
+  <button class="tab-btn" onclick="showTab('waterfall',this)">Waterfall</button>
+  <button class="tab-btn" onclick="showTab('scenarios',this)">Scenarios</button>
+  <button class="tab-btn" onclick="showTab('assumptions',this)">Assumptions Review</button>
+  <button class="tab-btn" onclick="showTab('sba',this)">SBA Compliant Pro-forma Document</button>
+</div>
+
+<!-- Body: sidebar + main -->
+<div class="body-wrap">
+
+  <!-- Fixed sidebar with sliders -->
+  <aside class="sidebar">
+
+    <div class="sb-section">
+      <div class="sb-section-label">Franchisee info</div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <input type="text" id="fi-name" placeholder="Your name"
+          style="padding:4px 7px;border-radius:5px;border:1px solid rgba(68,29,31,0.25);
+          background:rgba(255,255,255,0.2);color:var(--brown);font-family:'Inter',sans-serif;
+          font-size:11px;outline:none;width:100%;" oninput="">
+        <input type="text" id="fi-location" placeholder="Location / market"
+          style="padding:4px 7px;border-radius:5px;border:1px solid rgba(68,29,31,0.25);
+          background:rgba(255,255,255,0.2);color:var(--brown);font-family:'Inter',sans-serif;
+          font-size:11px;outline:none;width:100%;" oninput="">
+      </div>
+    </div>
+
+    <div class="sb-divider"></div>
+
+    <div class="sb-section">
+      <div class="sb-section-label">Revenue drivers</div>
+
+      <div class="sb-control">
+        <div class="sb-ctrl-header">
+          <span class="sb-ctrl-name">Days of operation / year</span>
+          <span class="sb-ctrl-val ok" id="lbl-days" style="min-width:48px;">364</span>
+        </div>
+        <div style="font-size:10px;color:rgba(68,29,31,0.6);margin-top:2px;">Fixed budget basis — Ziggi's plans 364 operating days/year</div>
+      </div>
+
+      <div class="sb-control">
+        <div class="sb-ctrl-header">
+          <span class="sb-ctrl-name">Avg daily revenue</span>
+          <input class="sb-ctrl-val sb-val-input" id="lbl-dayrev" type="text" value="$0">
+        </div>
+        <input type="range" id="sl-dayrev" min="0" max="10000" step="50" value="0">
+      </div>
+
+      <div class="sb-control">
+        <div class="sb-ctrl-header">
+          <span class="sb-ctrl-name">Discount %</span>
+          <input class="sb-ctrl-val sb-val-input ok" id="lbl-disc" type="text" value="0%">
+        </div>
+        <input type="range" id="sl-disc" min="0" max="20" step="1" value="0">
+      </div>
+      <div style="font-size:10px;color:rgba(68,29,31,0.6);margin-top:2px;">Gross sales − discounts = net sales</div>
+    </div>
+
+    <div class="sb-divider"></div>
+
+    <div class="sb-section">
+      <div class="sb-section-label">Cost structure</div>
+
+      <div class="sb-control">
+        <div class="sb-ctrl-header">
+          <span class="sb-ctrl-name">COGS %</span>
+          <input class="sb-ctrl-val sb-val-input ok" id="lbl-cogs" type="text" value="0%">
+        </div>
+        <input type="range" id="sl-cogs" min="0" max="75" step="1" value="0">
+      </div>
+      <div style="font-size:10px;color:rgba(68,29,31,0.6);margin-top:2px;">Calculated on gross sales</div>
+
+      <div class="sb-control">
+        <div class="sb-ctrl-header">
+          <span class="sb-ctrl-name">Labor % of gross sales</span>
+          <input class="sb-ctrl-val sb-val-input ok" id="lbl-labor" type="text" value="0%">
+        </div>
+        <input type="range" id="sl-labor" min="0" max="40" step="1" value="0">
+      </div>
+      <div style="font-size:10px;color:rgba(68,29,31,0.6);margin-top:2px;">Applied to gross sales · target: 15–25%</div>
+
+      <div class="sb-control" style="margin-top:4px;">
+        <div class="sb-ctrl-header">
+          <span class="sb-ctrl-name">Bank loan (monthly)</span>
+          <span class="sb-ctrl-val ok" id="lbl-truck" style="min-width:62px;">$0/mo</span>
+        </div>
+        <div style="font-size:10px;color:rgba(68,29,31,0.6);margin-top:2px;">Calculated in the Loan Details tab</div>
+      </div>
+
+    <div class="sb-divider"></div>
+
+    <div class="sb-section">
+      <div class="sb-section-label">Royalties</div>
+
+      <div class="sb-control">
+        <div class="sb-ctrl-header">
+          <span class="sb-ctrl-name">Royalty rate</span>
+          <input class="sb-ctrl-val sb-val-input" id="lbl-roy" type="text" value="6.0%">
+        </div>
+        <input type="range" id="sl-roy" min="0" max="6" step="0.5" value="6">
+      </div>
+      <div style="font-size:10px;color:rgba(68,29,31,0.6);margin-top:2px;">Calculated on net sales (after discounts)</div>
+    </div>
+
+    <div class="sb-divider"></div>
+
+    <div class="sb-section">
+      <button onclick="resetDefaults()" style="
+        width:100%; padding:7px 0; border:1px solid rgba(68,29,31,0.3); border-radius:6px;
+        background:transparent; color:var(--brown); font-family:'Inter',sans-serif;
+        font-size:12px; font-weight:600; cursor:pointer; letter-spacing:0.03em;
+        display:flex; align-items:center; justify-content:center; gap:7px;
+        margin-bottom:8px;
+      ">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2 8a6 6 0 1 0 1.5-3.9" stroke="#441D1F" stroke-width="1.4" stroke-linecap="round"/>
+          <polyline points="2,4 2,8 6,8" stroke="#441D1F" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Reset to Defaults
+      </button>
+      <button onclick="printSummary()" style="
+        width:100%; padding:8px 0; border:none; border-radius:6px;
+        background:var(--brown); color:#fff; font-family:'Inter',sans-serif;
+        font-size:12px; font-weight:600; cursor:pointer; letter-spacing:0.03em;
+        display:flex; align-items:center; justify-content:center; gap:7px;
+      ">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 1h8v4H4V1zM2 6h12a1 1 0 011 1v5a1 1 0 01-1 1h-2v2H4v-2H2a1 1 0 01-1-1V7a1 1 0 011-1z" stroke="white" stroke-width="1.3" stroke-linejoin="round" fill="none"/>
+          <rect x="4" y="10" width="8" height="4" rx="0.5" fill="white" opacity="0.3"/>
+        </svg>
+        Print / Save as PDF
+      </button>
+
+    </div>
+
+  </aside>
+
+  <!-- Scrollable main content -->
+  <main class="main">
+
+    <!-- KPI strip always visible -->
+    <div class="kpi-row">
+      <div class="kpi-card accent">
+        <div class="kpi-label">Total Revenue</div>
+        <div class="kpi-val" id="kpi-rev">—</div>
+        <div class="kpi-sub" id="kpi-rev-sub">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Gross Profit</div>
+        <div class="kpi-val" id="kpi-gp">—</div>
+        <div class="kpi-sub" id="kpi-gp-pct">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Net Income</div>
+        <div class="kpi-val" id="kpi-net">—</div>
+        <div class="kpi-sub" id="kpi-net-pct">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Break-Even Days</div>
+        <div class="kpi-val" id="kpi-breakeven">—</div>
+        <div class="kpi-sub" id="kpi-breakeven-sub">days to cover all costs</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Monthly Debt Service</div>
+        <div class="kpi-val" id="kpi-ds">—</div>
+        <div class="kpi-sub" id="kpi-ds-sub">— of monthly sales</div>
+      </div>
+    </div>
+
+    <!-- PANEL: Income Statement -->
+    <div class="panel active" id="panel-pnl">
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Projected Income Statement</span>
+            <span class="card-sub">Annual · sliders update live</span>
+          </div>
+          <table class="pnl-table">
+            <tr><td>Gross sales</td><td id="p-rev">—</td></tr>
+            <tr class="sub"><td>Less: Discounts</td><td id="p-disc">—</td></tr>
+            <tr class="total"><td>Net sales</td><td id="p-net-sales">—</td></tr>
+            <tr class="sub"><td>Cost of goods sold <span style="color:var(--text-muted);font-size:10px;">(of gross)</span></td><td id="p-cogs">—</td></tr>
+            <tr class="total"><td>Gross profit</td><td id="p-gp">—</td></tr>
+            <tr class="spacer"><td colspan="2"></td></tr>
+            <tr class="sub"><td>Labor</td><td id="p-comp">—</td></tr>
+            <tr class="sub"><td>Advertising &amp; marketing (1% of net)</td><td id="p-ad">—</td></tr>
+            <tr class="sub"><td>Royalties</td><td id="p-roy">—</td></tr>
+            <tr class="sub"><td>Merchant fees (2.75% of net)</td><td id="p-merch">—</td></tr>
+            <tr class="sub"><td>Tenant Rent &amp; NNN <span class="info-dot">i<span class="tip"><b>Annual lease cost.</b> Base rent plus NNN (triple net): property taxes, building insurance, and common area maintenance. Enter your full yearly amount; leave $0 if you own the property.</span></span> <span class="edit-hint">✎</span></td><td><input class="pnl-input" id="in-rent" type="text" value="$0" oninput="liveComma(this)" onblur="fmtInput(this)" onfocus="stripInput(this)" onchange="update()"></td></tr>
+            <tr class="sub"><td>Dues &amp; Subscriptions <span class="info-dot">i<span class="tip"><b>Includes, for example:</b> POS &amp; back-office software, scheduling, loyalty/gift platform, accounting software, music — e.g. Revel POS, QuickBooks Online, When I Work, Paytronix, music &amp; subscriptions.</span></span> <span class="edit-hint">✎</span></td><td><input class="pnl-input" id="in-dues" type="text" value="$10,570" oninput="liveComma(this)" onblur="fmtInput(this)" onfocus="stripInput(this)" onchange="update()"></td></tr>
+            <tr class="sub"><td>Occupancy <span class="info-dot">i<span class="tip"><b>Includes, for example:</b> Utilities (electric/gas/water), liability insurance, cleaning, dish &amp; ice machine rental, internet, telephone, pest control, security/ADT, trash, linens, landscape/snow removal.</span></span> <span class="edit-hint">✎</span></td><td><input class="pnl-input" id="in-occ" type="text" value="$33,520" oninput="liveComma(this)" onblur="fmtInput(this)" onfocus="stripInput(this)" onchange="update()"></td></tr>
+            <tr class="sub"><td>Professional Fees <span class="info-dot">i<span class="tip"><b>Includes, for example:</b> Accounting and legal fees.</span></span> <span class="edit-hint">✎</span></td><td><input class="pnl-input" id="in-prof" type="text" value="$5,000" oninput="liveComma(this)" onblur="fmtInput(this)" onfocus="stripInput(this)" onchange="update()"></td></tr>
+            <tr class="sub"><td>Misc. <span class="info-dot">i<span class="tip"><b>Includes, for example:</b> Workers comp, supplies expense, office expense, licenses &amp; permits, employee uniforms, bank service charges, health insurance/401k, staff development, district manager.</span></span> <span class="edit-hint">✎</span></td><td><input class="pnl-input" id="in-misc" type="text" value="$13,000" oninput="liveComma(this)" onblur="fmtInput(this)" onfocus="stripInput(this)" onchange="update()"></td></tr>
+            <tr class="sub"><td>Loan interest <span style="color:var(--text-muted);font-size:10px;">(Year 1)</span></td><td id="p-truck">—</td></tr>
+            <tr class="total"><td>Total operating expenses</td><td id="p-opex">—</td></tr>
+            <tr class="spacer"><td colspan="2"></td></tr>
+            <tr class="net"><td>Net income</td><td id="p-net">—</td></tr>
+            <tr><td style="font-size:11px;color:var(--text-muted);padding-top:3px;">Net margin</td><td id="p-margin" style="font-size:11px;color:var(--text-muted);">—</td></tr>
+            <tr class="spacer"><td colspan="2"></td></tr>
+            <tr class="sub"><td>Less: Loan principal <span style="color:var(--text-muted);font-size:10px;">(Year 1, not an expense)</span></td><td id="p-prin">—</td></tr>
+            <tr class="total"><td>Net cash flow after debt service</td><td id="p-ncf">—</td></tr>
+          </table>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Revenue Allocation</span>
+              <span class="card-sub">% of gross revenue</span>
+            </div>
+            <div class="chart-wrap" style="height:160px;">
+              <canvas id="ch-donut" role="img" aria-label="Donut chart of revenue allocation">Revenue allocation</canvas>
+            </div>
+            <div class="legend-row">
+              <span><span class="leg-dot" style="background:#b8a890;"></span>Discounts <span id="leg-disc-pct"></span></span>
+              <span><span class="leg-dot" style="background:#CFA571;"></span>COGS <span id="leg-cogs-pct"></span></span>
+              <span><span class="leg-dot" style="background:#72B1CB;"></span>Opex <span id="leg-opex-pct"></span></span>
+              <span><span class="leg-dot" style="background:#2a7a4b;"></span>Net income <span id="leg-net-pct"></span></span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Operating Expense Breakdown</span>
+              <span class="card-sub">Annual amounts</span>
+            </div>
+            <div class="chart-wrap" style="height:145px;">
+              <canvas id="ch-opex" role="img" aria-label="Bar chart of operating expenses">Opex breakdown</canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL: Loan Details -->
+    <div class="panel" id="panel-loan">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Loan Details</span>
+          <span class="card-sub">Calculates the monthly bank loan payment used in your P&amp;L</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+          <button class="ln-struct-btn active" id="ln-btn-7a" onclick="setLoanStruct('7a')">SBA 7(a) / Conventional</button>
+          <button class="ln-struct-btn" id="ln-btn-504" onclick="setLoanStruct('504')">SBA 504</button>
+        </div>
+
+        <div class="ln-field-row">
+          <span class="ln-label" style="font-size:12px;text-transform:none;font-weight:600;color:var(--text);">Project Total (build-out + equipment + fees)</span>
+          <input class="ln-input big" id="ln-project" type="text" value="$0" onblur="lnFmt(this)" onfocus="lnStrip(this)" oninput="liveComma(this)">
+        </div>
+
+        <!-- SBA 7(a) inputs -->
+        <div id="ln-7a-inputs">
+          <div class="ln-grid3">
+            <div class="ln-field"><span class="ln-label">Down Payment (%)</span><input class="ln-input" id="ln-7a-down" type="text" value="10" oninput="update()"></div>
+            <div class="ln-field"><span class="ln-label">Loan Term (years)</span><input class="ln-input" id="ln-7a-term" type="text" value="25" oninput="update()"></div>
+            <div class="ln-field"><span class="ln-label">Interest Rate (%)</span><input class="ln-input" id="ln-7a-rate" type="text" value="9" oninput="update()"></div>
+          </div>
+        </div>
+
+        <!-- SBA 504 inputs -->
+        <div id="ln-504-inputs" style="display:none;">
+          <div class="ln-subtitle">504 / Conventional — bank 1st lien</div>
+          <div class="ln-grid3">
+            <div class="ln-field"><span class="ln-label">% of Project</span><input class="ln-input" id="ln-504-conv-pct" type="text" value="50" oninput="update()"></div>
+            <div class="ln-field"><span class="ln-label">Loan Term (years)</span><input class="ln-input" id="ln-504-conv-term" type="text" value="20" oninput="update()"></div>
+            <div class="ln-field"><span class="ln-label">Interest Rate (%)</span><input class="ln-input" id="ln-504-conv-rate" type="text" value="7" oninput="update()"></div>
+          </div>
+          <div class="ln-subtitle">504 / SBA · CDC — 2nd lien</div>
+          <div class="ln-grid3">
+            <div class="ln-field"><span class="ln-label">% of Project</span><input class="ln-input" id="ln-504-sba-pct" type="text" value="40" oninput="update()"></div>
+            <div class="ln-field"><span class="ln-label">Loan Term (years)</span><input class="ln-input" id="ln-504-sba-term" type="text" value="25" oninput="update()"></div>
+            <div class="ln-field"><span class="ln-label">Interest Rate (%)</span><input class="ln-input" id="ln-504-sba-rate" type="text" value="5.86" oninput="update()"></div>
+          </div>
+          <div style="font-size:10.5px;color:var(--text-muted);margin-top:4px;">Down payment is the remainder: <span id="ln-504-down-note">10%</span> of project total. Standard 504 structure is 50 / 40 / 10.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Payment Breakdown</span>
+          <span class="card-sub">Standard amortization</span>
+        </div>
+        <table class="ln-table" id="ln-result-table"></table>
+      </div>
+
+      <div class="kpi-row" style="grid-template-columns:repeat(2,1fr);margin-bottom:0;">
+        <div class="kpi-card accent">
+          <div class="kpi-label">Monthly Loan Payment</div>
+          <div class="kpi-val" id="ln-kpi-monthly">—</div>
+          <div class="kpi-sub">full cash payment (principal + interest)</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Annual Loan Debt Service</div>
+          <div class="kpi-val" id="ln-kpi-annual">—</div>
+          <div class="kpi-sub">monthly payment × 12</div>
+        </div>
+      </div>
+      <div style="margin-top:12px;padding:11px 14px;background:var(--blue-light);border:1px solid var(--blue);border-radius:8px;font-size:11.5px;color:var(--text-dim);line-height:1.65;">
+        In year one, your debt service of <b id="ln-y1-total">—</b> breaks down to <b id="ln-y1-int" style="color:var(--blue-dark);">—</b> in <b>interest</b> — the only portion deducted on the income statement — plus <b id="ln-y1-prin">—</b> in <b>principal</b>, a balance-sheet repayment shown below net income as cash flow.
+      </div>
+    </div>
+
+    <!-- PANEL: Waterfall -->
+    <div class="panel" id="panel-waterfall">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Revenue Waterfall — Gross to Net Income</span>
+          <span class="card-sub">Each bar shows a deduction from gross revenue</span>
+        </div>
+        <div class="chart-wrap" style="height:310px;">
+          <canvas id="ch-waterfall" role="img" aria-label="Waterfall chart from revenue to net income">Waterfall</canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL: Scenarios -->
+    <div class="panel" id="panel-scenarios">
+      <div class="flag-box info" style="margin-bottom:12px;">
+        Three scenarios using your current inputs, all at 364 operating days. <b>Bear</b>: daily revenue 20% below your estimate. <b>Base</b>: your estimate. <b>Bull</b>: 20% above. Adjust any input to update all three instantly.
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Net Income by Scenario</span>
+            <span class="card-sub">All other inputs held constant</span>
+          </div>
+          <div class="chart-wrap" style="height:230px;">
+            <canvas id="ch-sc" role="img" aria-label="Bar chart comparing net income across scenarios">Scenarios</canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Scenario Detail</span>
+            <span class="card-sub">Net income with margin %</span>
+          </div>
+          <div id="sc-bars"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL: Assumptions Review -->
+    <div class="panel" id="panel-assumptions">
+      <div class="flag-box info" id="hc-summary" style="margin-bottom:14px;"></div>
+      <div class="asmp-grid" id="hc-grid"></div>
+    </div>
+<style>
+  #panel-sba .sba-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 26px; }
+  #panel-sba .sba-row { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:4px 0; border-bottom:1px solid var(--surface2); }
+  #panel-sba .sba-row label { font-size:12px; color:var(--text-dim); }
+  #panel-sba .sba-input { width:118px; flex-shrink:0; text-align:right; border:none; border-bottom:1px dashed var(--tan-dark); background:var(--tan-light); font-family:'Inter',sans-serif; font-size:12.5px; color:var(--text); padding:2px 6px; border-radius:3px; outline:none; font-variant-numeric:tabular-nums; }
+  #panel-sba .sba-input:focus { background:#ecdbb8; }
+  #panel-sba .sba-total-row { display:flex; justify-content:space-between; margin-top:10px; padding-top:7px; border-top:2px solid var(--border); font-weight:700; font-size:13px; color:var(--text); font-family:'Inter',sans-serif; }
+  #panel-sba ol.sba-steps { margin:4px 0 0 16px; padding:0; }
+  #panel-sba ol.sba-steps li { font-size:12.5px; color:var(--text-dim); line-height:1.6; margin-bottom:7px; }
+  #panel-sba .sba-generate { width:100%; padding:13px 0; border:none; border-radius:8px; background:var(--green); color:#fff; font-family:'Inter',sans-serif; font-size:14px; font-weight:700; cursor:pointer; letter-spacing:0.02em; margin-top:2px; display:flex; align-items:center; justify-content:center; gap:8px; }
+  #panel-sba .sba-generate:hover { background:#22633d; }
+</style>
+
+    <!-- PANEL: SBA Compliant Pro-forma Document -->
+    <div class="panel" id="panel-sba">
+      <div class="card" style="border-left:4px solid var(--tan);">
+        <div class="card-header"><span class="card-title">How to generate your SBA-compliant pro-forma</span><span class="card-sub">New to this? Just follow the steps</span></div>
+        <ol class="sba-steps">
+          <li><b>Set your operating assumptions.</b> In the left sidebar, enter your average daily revenue, discount %, COGS %, labor %, and your fixed costs. These drive the projection.</li>
+          <li><b>Set up your loan.</b> Open the <b>Loan Details</b> tab and enter your project total, loan structure (SBA 7(a) or 504), interest rate, and term. This builds your amortization and debt service.</li>
+          <li><b>Fill in the items below.</b> These are the startup costs and expenses an SBA lender expects but that aren't part of the day-to-day model: your <b>Uses of Funds</b> (from FDD Item 7), how you're funding your <b>equity injection</b>, your <b>owner's salary</b>, and a few operating costs. Leave anything that doesn't apply at $0.</li>
+          <li><b>Generate the workbook.</b> Click <b>Generate SBA Excel</b> at the bottom. You'll get a five-sheet file — Sources &amp; Uses, Loan Amortization, and monthly Year 1, 2, and 3 statements — with your Debt Service Coverage Ratio and a stress test.</li>
+        </ol>
+        <div class="flag-box info" style="margin-top:8px;margin-bottom:0;"><b>What lenders look for:</b> the key number is your <b>Debt Service Coverage Ratio (DSCR)</b> — operating income divided by loan payments. SBA generally wants this at <b>1.15x or higher</b> within the first two years. Always have the finished file reviewed by your lender and a qualified advisor before relying on it.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-title">1 &middot; Project Costs (Uses of Funds)</span><span class="card-sub">From FDD Item 7 — your total startup investment</span></div>
+        <div class="sba-grid"><div class="sba-row"><label>Franchise Fee</label><input class="sba-input" id="sba-franchise" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div><div class="sba-row"><label>Initial Marketing Spend</label><input class="sba-input" id="sba-marketing" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div><div class="sba-row"><label>Rent Security Deposit</label><input class="sba-input" id="sba-deposit" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div><div class="sba-row"><label>Construction / Leasehold Improvements</label><input class="sba-input" id="sba-construction" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div><div class="sba-row"><label>Real Estate Purchase</label><input class="sba-input" id="sba-realestate" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div><div class="sba-row"><label>Furniture &amp; Fixtures</label><input class="sba-input" id="sba-ffe" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div><div class="sba-row"><label>Equipment</label><input class="sba-input" id="sba-equipment" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div><div class="sba-row"><label>Inventory</label><input class="sba-input" id="sba-inventory" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div><div class="sba-row"><label>Supplies</label><input class="sba-input" id="sba-supplies" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div><div class="sba-row"><label>Computer Equipment &amp; Software</label><input class="sba-input" id="sba-computer" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div><div class="sba-row"><label>Signage</label><input class="sba-input" id="sba-signage" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div><div class="sba-row"><label>Training Expenses / Deposits</label><input class="sba-input" id="sba-training" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div><div class="sba-row"><label>Professional Fees (startup)</label><input class="sba-input" id="sba-proffees" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div><div class="sba-row"><label>Insurance Premium</label><input class="sba-input" id="sba-insprem" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div><div class="sba-row"><label>Working Capital (3 months)</label><input class="sba-input" id="sba-workingcap" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div><div class="sba-row"><label>Estimated Closing Costs</label><input class="sba-input" id="sba-closing" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div><div class="sba-row"><label>SBA Guaranty / Packaging Fee</label><input class="sba-input" id="sba-guaranty" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div></div>
+        <div class="sba-total-row"><span>Total startup costs entered</span><span id="sba-uses-total">$0</span></div>
+        <div id="sba-uses-note" style="font-size:11px;color:var(--text-muted);margin-top:5px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-title">2 &middot; Equity / Cash Injection Sources</span><span class="card-sub">How you're funding your down payment</span></div>
+        <div class="sba-grid"><div class="sba-row"><label>Cash on Hand / Savings / Rollover</label><input class="sba-input" id="sba-eq-cash" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div><div class="sba-row"><label>Liquidated Marketable Securities</label><input class="sba-input" id="sba-eq-securities" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div><div class="sba-row"><label>Other</label><input class="sba-input" id="sba-eq-other" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div></div>
+        <div class="sba-total-row"><span>Total equity sources</span><span id="sba-eq-total">$0</span></div>
+        <div id="sba-eq-note" style="font-size:11px;color:var(--text-muted);margin-top:5px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-title">3 &middot; Owner's Pay &amp; Additional Operating Costs</span><span class="card-sub">Annual amounts the lender expects broken out</span></div>
+        <div class="sba-grid"><div class="sba-row"><label>Owner's Compensation (annual draw/salary)</label><input class="sba-input" id="sba-owner" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div><div class="sba-row"><label>Repairs &amp; Maintenance</label><input class="sba-input" id="sba-repairs" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div><div class="sba-row"><label>Local Advertising</label><input class="sba-input" id="sba-localad" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div><div class="sba-row"><label>Insurance</label><input class="sba-input" id="sba-insurance" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div><div class="sba-row"><label>Office Expense</label><input class="sba-input" id="sba-office" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div><div class="sba-row"><label>Telephone &amp; Internet</label><input class="sba-input" id="sba-telephone" type="text" value="$0" oninput="liveComma(this);sbaRecalc()" onblur="fmtInput(this);sbaRecalc()" onfocus="stripInput(this)"></div></div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.6;">These are added as expenses in the SBA workbook, so they will lower the projected net income and DSCR there compared with the dashboard's quick view on the Income Statement tab. That's expected — the SBA file is the fuller picture your lender wants.</div>
+      </div>
+
+      <button class="sba-generate" onclick="exportSBA()">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 1.5h6l4 4V14a.5.5 0 01-.5.5h-9A.5.5 0 013 14V1.5z" stroke="white" stroke-width="1.3" stroke-linejoin="round"/><path d="M6 8l4 4M10 8l-4 4" stroke="white" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Generate SBA Excel
+      </button>
+    </div>
+
+    <div style="margin-top:16px;padding:14px 18px;background:#fdf3e3;border:1px solid var(--tan-dark);border-radius:8px;font-size:12px;color:#4a3a2a;line-height:1.7;">
+      <strong style="color:var(--brown);font-size:13px;display:block;margin-bottom:5px;">⚠ Disclaimer</strong> This tool is provided for general informational and planning purposes only and does not constitute a financial performance representation or earnings claim by Ziggi's Coffee. Actual results will vary based on a wide range of factors including location, market conditions, management, and other variables. Ziggi's Coffee makes no guarantee of profitability or specific financial outcomes. Franchisees should review the Franchise Disclosure Document carefully and consult their own qualified legal, tax, and financial advisors before making any business or financial decision.
+    </div>
+
+  </main>
+</div><!-- /body-wrap -->
+
+<script>
+const $ = id => document.getElementById(id);
+const fmtD = v => (v < 0 ? '-' : '') + '$' + Math.abs(Math.round(v)).toLocaleString();
+const fmtP = v => '$' + Math.round(v).toLocaleString();
+const pctOf = (n, d) => d ? (n / d * 100).toFixed(1) + '%' : '—';
+
+let loanStruct = '7a';
+if (window.Chart) { Chart.defaults.font.family = "'Inter', sans-serif"; }
+let charts = {};
+
+function parseInput(id) {
+  return Math.abs(parseFloat($( id).value.replace(/[^0-9.]/g, '')) || 0);
+}
+function fmtInput(el) {
+  const v = Math.abs(parseFloat(el.value.replace(/[^0-9.]/g, '')) || 0);
+  el.value = '$' + Math.round(v).toLocaleString();
+  update();
+}
+function stripInput(el) {
+  const v = Math.abs(parseFloat(el.value.replace(/[^0-9.]/g, '')) || 0);
+  el.value = v ? v.toLocaleString('en-US') : '';
+  el.select();
+}
+
+// Insert thousands separators live as the user types, preserving cursor position
+function liveComma(el) {
+  const caret = el.selectionStart;
+  const digitsLeft = (el.value.slice(0, caret).match(/\d/g) || []).length;
+  const digits = el.value.replace(/[^\d]/g, '');
+  const formatted = digits ? Number(digits).toLocaleString('en-US') : '';
+  el.value = formatted;
+  let pos = 0, seen = 0;
+  while (pos < formatted.length && seen < digitsLeft) {
+    if (formatted[pos] >= '0' && formatted[pos] <= '9') seen++;
+    pos++;
+  }
+  if (el.setSelectionRange) { try { el.setSelectionRange(pos, pos); } catch (e) {} }
+  update();
+}
+
+function calc(days, dayrev, disc, cogs, laborPct, roy, royOnSales, rent, dues, occ, prof, truck, misc) {
+  const rev = days * dayrev;                      // gross sales
+  const discAmt = rev * (disc || 0) / 100;         // discounts
+  const netSales = rev - discAmt;                  // net sales
+  const cogsAmt = rev * cogs / 100;                // COGS on GROSS sales
+  const gp = netSales - cogsAmt;                   // gross profit = net sales - COGS
+  const royAmt = netSales * roy / 100;             // royalties on NET sales
+  const compAmt = rev * laborPct / 100;            // labor on GROSS sales
+  const adAmt = netSales * 0.01;                   // advertising & marketing on NET sales
+  const merch = netSales * 0.0275;                 // merchant fees on NET sales
+  rent = rent ?? 0; dues = dues ?? 0; occ = occ ?? 0; prof = prof ?? 0; truck = truck ?? 0; misc = misc ?? 0;
+  const opex = compAmt + adAmt + royAmt + merch + rent + dues + occ + prof + truck + misc;
+  const net = gp - opex;
+  return { rev, discAmt, netSales, cogsAmt, gp, royAmt, compAmt, adAmt, merch, rent, dues, occ, prof, truck, misc, opex, net, laborPct };
+}
+
+function getS() {
+  const ly = loanYear1();
+  return {
+    days:      364,
+    dayrev:    +$('sl-dayrev').value,
+    disc:      +$('sl-disc').value,
+    cogs:      +$('sl-cogs').value,
+    laborPct:  +$('sl-labor').value,
+    roy:       +$('sl-roy').value,
+    royOnSales: true,
+    dues:      parseInput('in-dues'),
+    occ:       parseInput('in-occ'),
+    prof:      parseInput('in-prof'),
+    rent:      parseInput('in-rent'),
+    misc:      parseInput('in-misc'),
+    truck:     ly.interest,          // loan INTEREST only — the income-statement expense
+    loanPrin:  ly.principal,         // principal repayment — balance sheet, not net income
+    loanPay:   ly.interest + ly.principal,  // full annual debt service (cash)
+  };
+}
+
+const fmtMoney = v => '$' + (v||0).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
+function lnum(id) { return Math.abs(parseFloat(String($(id).value || '').replace(/[^0-9.]/g, '')) || 0); }
+function lnFmt(el) { const v = Math.abs(parseFloat(el.value.replace(/[^0-9.]/g, '')) || 0); el.value = '$' + Math.round(v).toLocaleString(); update(); }
+function lnStrip(el) { const v = Math.abs(parseFloat(el.value.replace(/[^0-9.]/g, '')) || 0); el.value = v ? v.toLocaleString('en-US') : ''; el.select(); }
+
+function amortize(P, ratePct, years) {
+  const n = Math.round(years * 12);
+  if (!P || !n) return 0;
+  const r = (ratePct || 0) / 100 / 12;
+  if (r === 0) return P / n;
+  const fac = Math.pow(1 + r, n);
+  return P * r * fac / (fac - 1);
+}
+
+function loanMonthly() {
+  const proj = lnum('ln-project');
+  if (loanStruct === '7a') {
+    const fin = proj * (1 - lnum('ln-7a-down') / 100);
+    return amortize(fin, lnum('ln-7a-rate'), lnum('ln-7a-term'));
+  }
+  const cFin = proj * lnum('ln-504-conv-pct') / 100;
+  const sFin = proj * lnum('ln-504-sba-pct') / 100;
+  return amortize(cFin, lnum('ln-504-conv-rate'), lnum('ln-504-conv-term'))
+       + amortize(sFin, lnum('ln-504-sba-rate'),  lnum('ln-504-sba-term'));
+}
+
+// Year-1 split of a single loan into interest vs principal (sum of first 12 payments)
+function loanSchedule(P, ratePct, years) {
+  const n = Math.round(years * 12);
+  const pmt = amortize(P, ratePct, years);
+  if (!P || !n) return { monthly: 0, interest: 0, principal: 0 };
+  const r = (ratePct || 0) / 100 / 12;
+  let bal = P, interest = 0, principal = 0;
+  const months = Math.min(12, n);
+  for (let m = 0; m < months; m++) {
+    const i = bal * r, pr = pmt - i;
+    interest += i; principal += pr; bal -= pr;
+  }
+  return { monthly: pmt, interest, principal };
+}
+
+function loanYear1() {
+  const proj = lnum('ln-project');
+  if (loanStruct === '7a') {
+    const fin = proj * (1 - lnum('ln-7a-down') / 100);
+    return loanSchedule(fin, lnum('ln-7a-rate'), lnum('ln-7a-term'));
+  }
+  const a = loanSchedule(proj * lnum('ln-504-conv-pct') / 100, lnum('ln-504-conv-rate'), lnum('ln-504-conv-term'));
+  const b = loanSchedule(proj * lnum('ln-504-sba-pct') / 100, lnum('ln-504-sba-rate'),  lnum('ln-504-sba-term'));
+  return { monthly: a.monthly + b.monthly, interest: a.interest + b.interest, principal: a.principal + b.principal };
+}
+
+function setLoanStruct(str) { loanStruct = str; renderLoan(); update(); }
+
+function renderLoan() {
+  const proj = lnum('ln-project');
+  $('ln-7a-inputs').style.display  = loanStruct === '7a'  ? 'block' : 'none';
+  $('ln-504-inputs').style.display = loanStruct === '504' ? 'block' : 'none';
+  $('ln-btn-7a').classList.toggle('active', loanStruct === '7a');
+  $('ln-btn-504').classList.toggle('active', loanStruct === '504');
+
+  let rows = '', monthly = 0;
+  if (loanStruct === '7a') {
+    const dP = lnum('ln-7a-down'), term = lnum('ln-7a-term'), rate = lnum('ln-7a-rate');
+    const fin = proj * (1 - dP/100), downAmt = proj * dP/100, n = Math.round(term*12);
+    const pmt = amortize(fin, rate, term); monthly = pmt;
+    rows = `<tr><td>SBA 7(a) loan</td><td>${dP}%</td><td>${fmtP(fin)}</td><td>${term} yr</td><td>${n}</td><td>${rate.toFixed(2)}%</td><td class="ln-pmt">${fmtMoney(pmt)}/mo</td></tr>`
+         + `<tr class="ln-down"><td>Down payment (equity)</td><td>${dP}%</td><td>${fmtP(downAmt)}</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
+  } else {
+    const cP = lnum('ln-504-conv-pct'), cT = lnum('ln-504-conv-term'), cR = lnum('ln-504-conv-rate');
+    const sP = lnum('ln-504-sba-pct'),  sT = lnum('ln-504-sba-term'),  sR = lnum('ln-504-sba-rate');
+    const dP = Math.max(0, 100 - cP - sP);
+    $('ln-504-down-note').textContent = (Math.round(dP*100)/100) + '%';
+    const cFin = proj*cP/100, sFin = proj*sP/100, downAmt = proj*dP/100;
+    const cPmt = amortize(cFin, cR, cT), sPmt = amortize(sFin, sR, sT); monthly = cPmt + sPmt;
+    rows = `<tr><td>504 / Conventional (1st)</td><td>${cP}%</td><td>${fmtP(cFin)}</td><td>${cT} yr</td><td>${Math.round(cT*12)}</td><td>${cR.toFixed(2)}%</td><td class="ln-pmt">${fmtMoney(cPmt)}/mo</td></tr>`
+         + `<tr><td>504 / SBA · CDC (2nd)</td><td>${sP}%</td><td>${fmtP(sFin)}</td><td>${sT} yr</td><td>${Math.round(sT*12)}</td><td>${sR.toFixed(2)}%</td><td class="ln-pmt">${fmtMoney(sPmt)}/mo</td></tr>`
+         + `<tr class="ln-down"><td>Down payment (equity)</td><td>${dP}%</td><td>${fmtP(downAmt)}</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
+  }
+  rows += `<tr class="ln-total"><td>Total monthly payment</td><td></td><td></td><td></td><td></td><td></td><td class="ln-pmt">${fmtMoney(monthly)}/mo</td></tr>`;
+  $('ln-result-table').innerHTML = `<thead><tr><th>Component</th><th>%</th><th>Amount Financed</th><th>Term</th><th># Pmts</th><th>Rate</th><th>Payment</th></tr></thead><tbody>${rows}</tbody>`;
+  $('ln-kpi-monthly').textContent = fmtMoney(monthly) + '/mo';
+  $('ln-kpi-annual').textContent  = fmtP(monthly * 12);
+  $('lbl-truck').textContent = '$' + Math.round(monthly).toLocaleString() + '/mo';
+  const y1 = loanYear1();
+  $('ln-y1-total').textContent = fmtP(monthly * 12);
+  $('ln-y1-int').textContent   = fmtP(y1.interest);
+  $('ln-y1-prin').textContent  = fmtP(y1.principal);
+}
+
+function parseNum(s) { return parseFloat(String(s).replace(/[^0-9.]/g, '')) || 0; }
+
+function bindSlider(slId, inId, toDisplay, parse, min, max, extraClass) {
+  const sl = $(slId), inp = $(inId);
+  sl.addEventListener('input', () => {
+    inp.value = toDisplay(+sl.value);
+    if (extraClass) { inp.className = 'sb-ctrl-val sb-val-input ' + extraClass(+sl.value); }
+    update();
+  });
+  function apply() {
+    const raw = parse(inp.value);
+    const clamped = Math.min(max, Math.max(min, isNaN(raw) ? +sl.value : raw));
+    sl.value = clamped;
+    inp.value = toDisplay(clamped);
+    if (extraClass) { inp.className = 'sb-ctrl-val sb-val-input ' + extraClass(clamped); }
+    update();
+  }
+  inp.addEventListener('blur', apply);
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { apply(); inp.blur(); }
+    if (e.key === 'Escape') { inp.value = toDisplay(+sl.value); inp.blur(); }
+  });
+  inp.addEventListener('focus', () => { inp.value = parseNum(inp.value) || 0; inp.select(); });
+}
+
+bindSlider('sl-dayrev', 'lbl-dayrev', v => '$' + Math.round(v).toLocaleString(),     parseNum, 0, 10000);
+bindSlider('sl-disc',   'lbl-disc',   v => v + '%',                                  parseNum, 0, 20);
+bindSlider('sl-cogs',   'lbl-cogs',   v => v + '%',                                  parseNum, 0, 75,    v => v > 40 ? 'warn' : 'ok');
+bindSlider('sl-labor',  'lbl-labor',  v => v + '%',                                  parseNum, 0, 40,    v => v > 25 ? 'warn' : 'ok');
+bindSlider('sl-roy',    'lbl-roy',    v => (+v).toFixed(1) + '%',                    parseNum, 0, 6);
+
+function showTab(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  $('panel-' + id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'loan') renderLoan();
+  if (id === 'assumptions') { const s = getS(); const r = calc(s.days, s.dayrev, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc); renderHealthCheck(s, r); }
+  setTimeout(() => redraw(id), 30);
+}
+
+function renderHealthCheck(s, r) {
+  const checks = [];
+
+  // 1. COGS %
+  if (s.cogs === 0) {
+    checks.push({ cls:'flag', label:'COGS % not set', val:'0%', note:'Enter your estimated cost of goods sold percentage. Ziggi\'s beverage concepts typically run 25–35%.' });
+  } else if (s.cogs > 40) {
+    checks.push({ cls:'flag', label:'COGS % — review', val:s.cogs+'%', note:'Your COGS is above 40%, which is high for a beverage concept. Confirm this includes only product cost and not labor.' });
+  } else {
+    checks.push({ cls:'ok', label:'COGS % looks reasonable', val:s.cogs+'%', note:'Within the typical 25–35% range for a Ziggi\'s beverage operation.' });
+  }
+
+  // 2. Labor %
+  if (r.laborPct === 0) {
+    checks.push({ cls:'flag', label:'Labor % not set', val:'0%', note:'Enter your estimated labor as a percentage of gross sales. The target range for a Ziggi\'s location is 15–25%.' });
+  } else if (r.laborPct > 25) {
+    checks.push({ cls:'flag', label:'Labor % — above target', val:r.laborPct.toFixed(1)+'%', note:'Labor is above the 15–25% target. Review your staffing plan or revenue assumption.' });
+  } else {
+    checks.push({ cls:'ok', label:'Labor % on target', val:r.laborPct.toFixed(1)+'%', note:'Within the 15–25% benchmark, applied to gross sales. Confirm this includes payroll taxes and benefits.' });
+  }
+
+  // 3. Break-even achievability
+  const contrib  = s.days ? (r.gp - r.royAmt - r.merch - r.compAmt - r.adAmt) / s.days : 0;
+  const fixed    = r.rent + r.dues + r.occ + r.prof + r.truck + r.misc;
+  const be       = contrib > 0 ? Math.ceil(fixed / contrib) : null;
+  if (!be) {
+    checks.push({ cls:'flag', label:'Break-even — cannot calculate', val:'—', note:'Daily contribution margin is zero or negative. Check that revenue and cost inputs are filled in.' });
+  } else if (be > s.days) {
+    checks.push({ cls:'flag', label:'Break-even exceeds planned days', val:be+' days needed', note:'You need '+be+' days to cover fixed costs but have only '+s.days+' planned. Consider increasing operating days or daily revenue.' });
+  } else {
+    checks.push({ cls:'ok', label:'Break-even achievable', val:'Day '+be, note:'You cover all fixed costs by day '+be+' of '+s.days+' planned. That leaves '+(s.days-be)+' profitable days.' });
+  }
+
+  // 4. Daily revenue
+  if (s.dayrev === 0) {
+    checks.push({ cls:'flag', label:'Daily revenue not set', val:'$0', note:'Enter your expected average daily revenue to complete the projection.' });
+  } else if (s.dayrev < 800) {
+    checks.push({ cls:'flag', label:'Daily revenue — below typical', val:'$'+Math.round(s.dayrev).toLocaleString(), note:'Daily revenue below $800 may be conservative for a Ziggi\'s location. Verify this reflects your expected sales for the site.' });
+  } else if (s.dayrev > 4000) {
+    checks.push({ cls:'flag', label:'Daily revenue — verify assumption', val:'$'+Math.round(s.dayrev).toLocaleString(), note:'High daily revenue — confirm this is realistic for your market and event schedule.' });
+  } else {
+    checks.push({ cls:'ok', label:'Daily revenue in range', val:'$'+Math.round(s.dayrev).toLocaleString(), note:'Within a reasonable range. Annual projection: '+fmtP(r.rev)+' across '+s.days+' operating days.' });
+  }
+
+  // 5. Occupancy as % of revenue (rent-to-sales)
+  const occPct = r.rev > 0 ? (s.occ / r.rev * 100) : 0;
+  if (r.rev === 0) {
+    checks.push({ cls:'flag', label:'Occupancy % — enter revenue first', val:'—', note:'Occupancy as a share of revenue cannot be calculated until daily revenue is entered.' });
+  } else if (occPct > 12) {
+    checks.push({ cls:'flag', label:'Occupancy % — high for the site', val:occPct.toFixed(1)+'%', note:'Occupancy (rent, utilities, insurance, etc.) is above ~12% of revenue. A high rent-to-sales ratio is a common risk factor for site viability — confirm the lease terms or revenue assumption.' });
+  } else {
+    checks.push({ cls:'ok', label:'Occupancy % in range', val:occPct.toFixed(1)+'%', note:'Occupancy is within a healthy rent-to-sales range (under ~12% of revenue) for the site.' });
+  }
+
+  // 6. Net margin
+  if (r.rev === 0) {
+    checks.push({ cls:'note', label:'Net margin — enter inputs first', val:'—', note:'Complete your revenue and cost inputs to see projected net margin.' });
+  } else if (r.net < 0) {
+    checks.push({ cls:'flag', label:'Model is currently unprofitable', val:pctOf(r.net,r.rev), note:'Current inputs produce a net loss of '+fmtP(Math.abs(r.net))+'. Review costs or increase revenue/operating days.' });
+  } else if (r.net/r.rev < 0.10) {
+    checks.push({ cls:'flag', label:'Net margin — thin', val:pctOf(r.net,r.rev), note:'Margin below 10% leaves little buffer for unexpected costs. Review your cost structure.' });
+  } else {
+    checks.push({ cls:'ok', label:'Net margin healthy', val:pctOf(r.net,r.rev), note:'Strong margin. Net income of '+fmtP(r.net)+' on '+fmtP(r.rev)+' in revenue.' });
+  }
+
+  const warnings = checks.filter(c => c.cls === 'flag').length;
+  const allClear = warnings === 0;
+  $('hc-summary').className = 'flag-box ' + (allClear ? 'ok' : 'warn') + ' mb-14';
+  $('hc-summary').innerHTML = allClear
+    ? '<b>All checks passed.</b> Your model inputs look reasonable across all key metrics.'
+    : '<b>' + warnings + ' item' + (warnings > 1 ? 's' : '') + ' need' + (warnings === 1 ? 's' : '') + ' attention.</b> Review the flagged items below before finalizing your projection.';
+
+  $('hc-grid').innerHTML = checks.map(c => `
+    <div class="asmp-card ${c.cls}">
+      <div class="asmp-label">${c.cls==='ok'?'✓ ':c.cls==='flag'?'⚠ ':''}${c.label}</div>
+      <div class="asmp-val" style="color:${c.cls==='ok'?'var(--green)':c.cls==='flag'?'var(--red)':'var(--text)'}">${c.val}</div>
+      <div class="asmp-note">${c.note}</div>
+    </div>`).join('');
+}
+
+function update() {
+  renderLoan();
+  const s = getS();
+  const r = calc(s.days, s.dayrev, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc);
+
+  // COGS label
+  const lc = $('lbl-cogs');
+  lc.value = s.cogs + '%';
+  lc.className = 'sb-ctrl-val sb-val-input ' + (s.cogs > 40 ? 'warn' : 'ok');
+
+  // Labor % badge
+  // KPIs
+  $('kpi-rev').textContent = fmtP(r.rev);
+  $('kpi-rev-sub').textContent = s.days + ' days × $' + Math.round(s.dayrev).toLocaleString() + '/day';
+  $('kpi-gp').textContent = fmtP(r.gp);
+  $('kpi-gp-pct').textContent = pctOf(r.gp, r.rev) + ' gross margin';
+  const ne = $('kpi-net');
+  ne.textContent = fmtP(r.net);
+  ne.className = 'kpi-val ' + (r.net >= 0 ? 'pos' : 'neg');
+  $('kpi-net-pct').textContent = pctOf(r.net, r.rev) + ' net margin';
+  // Break-even days
+  const dailyContrib = s.days ? (r.gp - r.royAmt - r.merch - r.compAmt - r.adAmt) / s.days : 0;
+  const fixedAnnual  = r.rent + r.dues + r.occ + r.prof + r.truck + r.misc;
+  const breakeven    = dailyContrib > 0 ? Math.ceil(fixedAnnual / dailyContrib) : null;
+  const be = $('kpi-breakeven');
+  if (s.dayrev === 0) {
+    be.textContent = '—';
+    be.className = 'kpi-val';
+    $('kpi-breakeven-sub').textContent = 'set daily revenue to calculate';
+  } else if (dailyContrib <= 0) {
+    be.textContent = 'N/A';
+    be.className = 'kpi-val neg';
+    $('kpi-breakeven-sub').textContent = 'variable costs exceed daily revenue — reduce COGS or increase revenue';
+  } else if (breakeven > 365) {
+    be.textContent = '>365';
+    be.className = 'kpi-val neg';
+    $('kpi-breakeven-sub').textContent = 'cannot break even within a year at current inputs';
+  } else if (breakeven <= s.days) {
+    be.textContent = breakeven;
+    be.className = 'kpi-val pos';
+    $('kpi-breakeven-sub').textContent = 'covered within operating days — ' + (s.days - breakeven) + ' profitable days remaining';
+  } else {
+    be.textContent = breakeven;
+    be.className = 'kpi-val neg';
+    $('kpi-breakeven-sub').textContent = breakeven + ' days needed vs. ' + s.days + ' planned';
+  }
+
+  // Monthly debt service = monthly loan payment (principal + interest) + monthly Tenant Rent & NNN
+  const monthlyDS = (s.loanPay + s.rent) / 12;
+  $('kpi-ds').textContent = fmtP(monthlyDS) + '/mo';
+  $('kpi-ds-sub').textContent = r.rev > 0
+    ? pctOf(s.loanPay + s.rent, r.rev) + ' of monthly sales'
+    : '— of monthly sales';
+
+  // P&L
+  $('p-rev').textContent = fmtP(r.rev);
+  $('p-disc').textContent = fmtD(-r.discAmt);
+  $('p-net-sales').textContent = fmtP(r.netSales);
+  $('p-cogs').textContent = fmtD(-r.cogsAmt);
+  $('p-gp').textContent = fmtP(r.gp);
+  $('p-comp').textContent = fmtD(-r.compAmt);
+  $('p-ad').textContent = fmtD(-r.adAmt);
+  $('p-roy').textContent = fmtD(-r.royAmt);
+  $('p-merch').textContent = fmtD(-r.merch);
+  $('p-truck').textContent = fmtD(-r.truck);
+  $('p-prin').textContent = fmtD(-s.loanPrin);
+  const ncf = r.net - s.loanPrin;
+  const pcf = $('p-ncf'); pcf.textContent = fmtP(ncf); pcf.className = ncf < 0 ? 'neg' : '';
+  $('p-opex').textContent = fmtD(-r.opex);
+  const pn = $('p-net');
+  pn.textContent = fmtP(r.net);
+  pn.className = r.net < 0 ? 'neg' : '';
+  $('p-margin').textContent = pctOf(r.net, r.rev);
+  $('leg-disc-pct').textContent = pctOf(r.discAmt, r.rev);
+  $('leg-cogs-pct').textContent = pctOf(r.cogsAmt, r.rev);
+  $('leg-opex-pct').textContent = pctOf(r.opex, r.rev);
+  $('leg-net-pct').textContent = pctOf(Math.max(r.net, 0), r.rev);
+
+  // Model Health Check
+  if (document.querySelector('#panel-assumptions.active')) renderHealthCheck(s, r);
+
+  const active = document.querySelector('.panel.active');
+  if (active) redraw(active.id.replace('panel-', ''));
+}
+
+function redraw(tab) {
+  const s = getS();
+  const r = calc(s.days, s.dayrev, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc);
+
+  if (tab === 'pnl') {
+    const dd = [r.discAmt, r.cogsAmt, r.opex, Math.max(r.net, 0)];
+    if (charts.donut) { charts.donut.data.datasets[0].data = dd; charts.donut.update('none'); }
+    else {
+      charts.donut = new Chart($('ch-donut'), {
+        type: 'doughnut',
+        data: { labels: ['Discounts','COGS','Operating expenses','Net income'], datasets: [{ data: dd, backgroundColor: ['#b8a890','#CFA571','#72B1CB','#2a7a4b'], borderColor: ['#8a7c68','#a07840','#3d7fa0','#1a5c32'], borderWidth: 1.5 }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '60%',
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + c.label + ': ' + fmtP(c.raw) + ' (' + pctOf(c.raw, r.rev) + ')' } } } }
+      });
+    }
+    const od = [r.compAmt, r.adAmt, r.royAmt, r.merch, r.rent, r.truck, r.occ, r.dues, r.prof, r.misc];
+    if (charts.opex) { charts.opex.data.datasets[0].data = od; charts.opex.update('none'); }
+    else {
+      charts.opex = new Chart($('ch-opex'), {
+        type: 'bar',
+        data: { labels: ['Labor','Advertising','Royalties','Merchant fees','Rent & NNN','Loan interest','Occupancy','Dues & subs','Professional','Misc.'], datasets: [{ data: od, backgroundColor: '#e4f2f8', borderColor: '#72B1CB', borderWidth: 1, borderRadius: 3 }] },
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + fmtP(c.raw) } } },
+          scales: { x: { grid: { color: '#f0ebe3' }, ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'K', font: { size: 10 } } }, y: { grid: { display: false }, ticks: { font: { size: 10 } } } } }
+      });
+    }
+  }
+
+  if (tab === 'waterfall') {
+    const c2 = r.gp, c3 = c2 - r.compAmt, cAd = c3 - r.adAmt, c4 = cAd - r.royAmt, c5 = c4 - r.merch, c6 = c5 - r.truck;
+    const wfBase = [0, 0, 0, c2, c3, cAd, c4, c5, c6, 0];
+    const wfBar  = [r.rev, r.netSales, r.gp, -r.compAmt, -r.adAmt, -r.royAmt, -r.merch, -r.truck, -(r.rent+r.dues+r.occ+r.prof+r.misc), r.net];
+    const isTot  = [true, true, true, false, false, false, false, false, false, true];
+    const bgs    = wfBar.map((v,i) => isTot[i] ? '#CFA571' : (v>=0 ? '#CFA571' : '#f4a39e'));
+    const bords  = wfBar.map((v,i) => isTot[i] ? '#a07840' : (v>=0 ? '#a07840' : '#c0392b'));
+    if (charts.wf) {
+      charts.wf.data.datasets[0].data = wfBase;
+      charts.wf.data.datasets[1].data = wfBar;
+      charts.wf.data.datasets[1].backgroundColor = bgs;
+      charts.wf.data.datasets[1].borderColor = bords;
+      charts.wf.update('none');
+    } else {
+      charts.wf = new Chart($('ch-waterfall'), {
+        type: 'bar',
+        data: { labels: ['Gross sales','Net sales','Gross profit','After labor','After advertising','After royalties','After merch','After interest','After fixed','Net income'],
+          datasets: [
+            { data: wfBase, backgroundColor: 'transparent', borderColor: 'transparent', borderSkipped: false },
+            { data: wfBar, backgroundColor: bgs, borderColor: bords, borderWidth: 1, borderRadius: 4, borderSkipped: false }
+          ]},
+        options: { responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.datasetIndex===0 ? null : ' ' + fmtP(Math.abs(c.raw)) } } },
+          scales: { x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } }, y: { stacked: true, grid: { color: '#f0ebe3' }, ticks: { callback: v => '$'+(v/1000).toFixed(0)+'K', font: { size: 10 } } } } }
+      });
+    }
+  }
+
+  if (tab === 'scenarios') {
+    const scDefs = [
+      { label: 'Bear',  mult: 0.8, tag:'−20% revenue', bg:'#fdecea', border:'#c0392b', tc:'#7b1c14' },
+      { label: 'Base',  mult: 1.0, tag:'your estimate', bg:'#f5ead8', border:'#a07840', tc:'#6b3a0a' },
+      { label: 'Bull',  mult: 1.2, tag:'+20% revenue', bg:'#eaf5ee', border:'#2a7a4b', tc:'#14532d' },
+    ];
+    const scR = scDefs.map(d => calc(s.days, s.dayrev * d.mult, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc));
+    if (charts.sc) {
+      charts.sc.data.datasets[0].data = scR.map(r => Math.round(r.net));
+      charts.sc.data.datasets[0].backgroundColor = scDefs.map(d => d.bg);
+      charts.sc.data.datasets[0].borderColor = scDefs.map(d => d.border);
+      charts.sc.update('none');
+    } else {
+      charts.sc = new Chart($('ch-sc'), {
+        type: 'bar',
+        data: { labels: scDefs.map(d => d.label), datasets: [{ data: scR.map(r => Math.round(r.net)), backgroundColor: scDefs.map(d => d.bg), borderColor: scDefs.map(d => d.border), borderWidth:1.5, borderRadius:5 }] },
+        options: { responsive:true, maintainAspectRatio:false,
+          plugins: { legend:{display:false}, tooltip:{callbacks:{label:c=>' Net income: '+fmtP(c.raw)}} },
+          scales: { x:{grid:{display:false},ticks:{font:{size:11}}}, y:{grid:{color:'#f0ebe3'},ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'K',font:{size:10}}} } }
+      });
+    }
+    const maxA = Math.max(...scR.map(r => Math.abs(r.net)), 1);
+    $('sc-bars').innerHTML = scDefs.map((d,i) => {
+      const nr = scR[i]; const w = (Math.abs(nr.net)/maxA*100).toFixed(1); const neg = nr.net < 0;
+      return `<div class="sc-item">
+        <div class="sc-row">
+          <span class="sc-name">${d.label} · $${Math.round(s.dayrev*d.mult).toLocaleString()}/day · ${d.tag}</span>
+          <span class="sc-amt ${neg?'neg':'pos'}">${fmtP(nr.net)}</span>
+        </div>
+        <div class="sc-track">
+          <div class="sc-fill" style="width:${w}%;background:${neg?'#fdecea':d.bg};color:${neg?'#7b1c14':d.tc};">${pctOf(nr.net,nr.rev)} margin</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function resetDefaults() {
+  const defaults = { 'sl-dayrev':0, 'sl-disc':0, 'sl-cogs':0, 'sl-labor':0, 'sl-roy':6 };
+  Object.entries(defaults).forEach(([id, val]) => { $(id).value = val; });
+  $('lbl-dayrev').value = '$0';
+  $('lbl-disc').value   = '0%';
+  $('lbl-cogs').value   = '0%';
+  $('lbl-labor').value  = '0%';
+  $('lbl-roy').value    = '6.0%';
+  $('in-rent').value = '$0';
+  $('in-dues').value = '$10,570';
+  $('in-occ').value  = '$33,520';
+  $('in-prof').value  = '$5,000';
+  $('in-misc').value  = '$13,000';
+  // Loan Details defaults
+  loanStruct = '7a';
+  $('ln-project').value = '$0';
+  $('ln-7a-down').value = '10'; $('ln-7a-term').value = '25'; $('ln-7a-rate').value = '9';
+  $('ln-504-conv-pct').value = '50'; $('ln-504-conv-term').value = '20'; $('ln-504-conv-rate').value = '7';
+  $('ln-504-sba-pct').value  = '40'; $('ln-504-sba-term').value  = '25'; $('ln-504-sba-rate').value  = '5.86';
+  renderLoan();
+  update();
+}
+
+function printSummary() {
+  const s = getS();
+  const r = calc(s.days, s.dayrev, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc);
+  const dateStr = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+
+  // Header — franchisee name & location
+  const name = ($('fi-name').value || '').trim();
+  const loc  = ($('fi-location').value || '').trim();
+  $('pdf-date').textContent = dateStr;
+  $('pdf-date-footer').textContent = dateStr;
+  $('pdf-meta-name').textContent  = name     || 'Franchisee Financial Model';
+  $('pdf-meta-location').textContent = loc   || 'Ziggi\'s Coffee';
+
+  // KPIs
+  $('pdf-kpi-rev').textContent = fmtP(r.rev);
+  $('pdf-kpi-rev-sub').textContent = s.days + ' days × $' + Math.round(s.dayrev).toLocaleString() + '/day';
+  $('pdf-kpi-gp').textContent = fmtP(r.gp);
+  $('pdf-kpi-gp-sub').textContent = pctOf(r.gp, r.rev) + ' gross margin';
+  const pdfNet = $('pdf-kpi-net');
+  pdfNet.textContent = fmtP(r.net);
+  pdfNet.className = 'pdf-kpi-val ' + (r.net >= 0 ? 'pos' : 'neg');
+  $('pdf-kpi-net-sub').textContent = r.net >= 0 ? 'Profitable' : 'Loss';
+  $('pdf-kpi-margin').textContent = pctOf(r.net, r.rev);
+
+  // P&L
+  $('pdf-p-rev').textContent  = fmtP(r.rev);
+  $('pdf-p-disc').textContent = fmtD(-r.discAmt);
+  $('pdf-p-net-sales').textContent = fmtP(r.netSales);
+  $('pdf-p-cogs').textContent = fmtD(-r.cogsAmt);
+  $('pdf-p-gp').textContent   = fmtP(r.gp);
+  $('pdf-p-comp').textContent = fmtD(-r.compAmt);
+  $('pdf-p-ad').textContent   = fmtD(-r.adAmt);
+  $('pdf-p-roy').textContent  = fmtD(-r.royAmt);
+  $('pdf-p-merch').textContent = fmtD(-r.merch);
+  $('pdf-p-rent').textContent = fmtD(-r.rent);
+  $('pdf-p-dues').textContent = fmtD(-r.dues);
+  $('pdf-p-occ').textContent  = fmtD(-r.occ);
+  $('pdf-p-prof').textContent  = fmtD(-r.prof);
+  $('pdf-p-misc').textContent  = fmtD(-r.misc);
+  $('pdf-p-truck').textContent = fmtD(-r.truck);
+  $('pdf-p-opex').textContent  = fmtD(-r.opex);
+  const pn = $('pdf-p-net'); pn.textContent = fmtP(r.net); pn.className = r.net < 0 ? 'neg' : '';
+  $('pdf-p-prin').textContent = fmtD(-s.loanPrin);
+  const pncf = r.net - s.loanPrin;
+  const pcfEl = $('pdf-p-ncf'); pcfEl.textContent = fmtP(pncf); pcfEl.className = pncf < 0 ? 'neg' : '';
+
+  // Key Assumptions — clean key/value rows, no jargon
+  const bull = calc(s.days, s.dayrev * 1.2, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc);
+  const _contrib  = s.days ? (r.gp - r.royAmt - r.merch - r.compAmt - r.adAmt) / s.days : 0;
+  const be        = _contrib > 0 ? Math.ceil((r.rent + r.dues + r.occ + r.prof + r.truck + r.misc) / _contrib) : null;
+  $('pdf-asmp-grid').innerHTML = [
+    { label: 'Operating days',   val: '364 days / year (fixed)' },
+    { label: 'Daily revenue',    val: '$' + Math.round(s.dayrev).toLocaleString() },
+    { label: 'Discount %',       val: s.disc + '%' },
+    { label: 'COGS %',           val: s.cogs + '% of gross' },
+    { label: 'Labor % (gross)',  val: r.laborPct.toFixed(1) + '%' },
+    { label: 'Royalty rate',     val: s.roy.toFixed(1) + '% on net sales' },
+    { label: 'Monthly loan pmt', val: '$' + Math.round(s.loanPay/12).toLocaleString() + '/mo' },
+    { label: 'Break-even day',   val: be ? 'Day ' + be : '—' },
+    { label: 'Bull case (+20%)', val: fmtP(bull.net) + ' net income' },
+  ].map(a => `<div class="pdf-kv-row"><span class="pdf-kv-label">${a.label}</span><span class="pdf-kv-val">${a.val}</span></div>`).join('');
+
+  // Scenarios
+  const scDefs = [
+    { label:'Bear', mult:0.8, tag:'−20% revenue' },
+    { label:'Base', mult:1.0, tag:'your estimate' },
+    { label:'Bull', mult:1.2, tag:'+20% revenue' },
+  ];
+  $('pdf-scenarios').innerHTML = scDefs.map(d => {
+    const nr = calc(s.days, s.dayrev * d.mult, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc);
+    const neg = nr.net < 0;
+    return `<div class="pdf-sc-row"><span class="pdf-sc-name">${d.label} · $${Math.round(s.dayrev*d.mult).toLocaleString()}/day · ${d.tag}</span><span style="display:flex;gap:12px;align-items:baseline;"><span class="pdf-sc-net ${neg?'neg':'pos'}">${fmtP(nr.net)}</span><span class="pdf-sc-margin">${pctOf(nr.net,nr.rev)}</span></span></div>`;
+  }).join('');
+
+  // Health check
+  const checks = [];
+  if (s.cogs === 0) checks.push({ ok:false, label:'COGS % not set', val:'0%' });
+  else if (s.cogs > 40) checks.push({ ok:false, label:'COGS % above typical range', val:s.cogs+'%' });
+  else checks.push({ ok:true, label:'COGS % in range', val:s.cogs+'%' });
+
+  if (r.laborPct > 25) checks.push({ ok:false, label:'Labor % above 15–25% target', val:r.laborPct.toFixed(1)+'%' });
+  else if (r.laborPct === 0) checks.push({ ok:false, label:'Labor % not set', val:'0%' });
+  else checks.push({ ok:true, label:'Labor % on target', val:r.laborPct.toFixed(1)+'%' });
+
+  if (!be) checks.push({ ok:false, label:'Break-even cannot be calculated', val:'—' });
+  else if (be > s.days) checks.push({ ok:false, label:'Break-even exceeds operating days', val:be+' days needed' });
+  else checks.push({ ok:true, label:'Break-even achievable', val:'Day '+be });
+
+  const occPctPdf = r.rev > 0 ? (s.occ / r.rev * 100) : 0;
+  if (r.rev === 0) checks.push({ ok:false, label:'Occupancy % needs revenue', val:'—' });
+  else if (occPctPdf > 12) checks.push({ ok:false, label:'Occupancy % high for site', val:occPctPdf.toFixed(1)+'%' });
+  else checks.push({ ok:true, label:'Occupancy % in range', val:occPctPdf.toFixed(1)+'%' });
+
+  if (r.net < 0) checks.push({ ok:false, label:'Model is currently unprofitable', val:pctOf(r.net,r.rev) });
+  else if (r.net/r.rev < 0.10) checks.push({ ok:false, label:'Net margin below 10%', val:pctOf(r.net,r.rev) });
+  else checks.push({ ok:true, label:'Net margin healthy', val:pctOf(r.net,r.rev) });
+
+  $('pdf-health').innerHTML = checks.map(ch =>
+    `<div class="pdf-hc-row">
+      <span class="pdf-hc-icon">${ch.ok ? '✓' : '⚠'}</span>
+      <span class="pdf-hc-label">${ch.label}</span>
+      <span class="pdf-hc-val ${ch.ok?'ok':'flag'}">${ch.val}</span>
+    </div>`).join('');
+
+  $('pdf-summary').style.display = 'block';
+  window.print();
+  $('pdf-summary').style.display = 'none';
+}
+
+// ===== SBA EXPORT — matches the SOP 50 10 3-Yr template (Sources & Uses, monthly Y1–Y3, DSCR + stress) =====
+
+// Monthly amortization schedule for a single loan leg
+function _amortSchedule(P, ratePct, years, months) {
+  const n = Math.round((years || 0) * 12);
+  const pmt = amortize(P, ratePct, years);
+  const r = (ratePct || 0) / 100 / 12;
+  let bal = P || 0;
+  const out = [];
+  for (let m = 0; m < months; m++) {
+    if (m >= n || bal <= 0) { out.push({ payment: 0, interest: 0, principal: 0, balance: Math.max(bal, 0) }); continue; }
+    const i = bal * r, pr = pmt - i;
+    bal -= pr;
+    out.push({ payment: pmt, interest: i, principal: pr, balance: Math.max(bal, 0) });
+  }
+  return out;
+}
+
+// Loan legs from dashboard inputs
+function _loanLegs() {
+  const proj = lnum('ln-project');
+  if (loanStruct === '7a') return [{ P: proj * (1 - lnum('ln-7a-down') / 100), ratePct: lnum('ln-7a-rate'), years: lnum('ln-7a-term') }];
+  return [
+    { P: proj * lnum('ln-504-conv-pct') / 100, ratePct: lnum('ln-504-conv-rate'), years: lnum('ln-504-conv-term') },
+    { P: proj * lnum('ln-504-sba-pct') / 100, ratePct: lnum('ln-504-sba-rate'), years: lnum('ln-504-sba-term') },
+  ];
+}
+function _combinedSchedule(legs, months, bump) {
+  const sc = legs.map(l => _amortSchedule(l.P, (l.ratePct || 0) + (bump || 0), l.years, months));
+  const out = [];
+  for (let m = 0; m < months; m++) {
+    out.push(sc.reduce((a, s) => ({
+      payment: a.payment + s[m].payment, interest: a.interest + s[m].interest,
+      principal: a.principal + s[m].principal, balance: a.balance + s[m].balance,
+    }), { payment: 0, interest: 0, principal: 0, balance: 0 }));
+  }
+  return out;
+}
+function _monthlyPay(legs, bump) { return legs.reduce((a, l) => a + amortize(l.P, (l.ratePct || 0) + (bump || 0), l.years), 0); }
+function _financed(legs) { return legs.reduce((a, l) => a + l.P, 0); }
+function _equityInjection() {
+  const proj = lnum('ln-project');
+  if (loanStruct === '7a') return proj * lnum('ln-7a-down') / 100;
+  return proj * Math.max(0, 100 - lnum('ln-504-conv-pct') - lnum('ln-504-sba-pct')) / 100;
+}
+
+// Number formats + cell/worksheet helpers
+const _CUR = '$#,##0';
+const _CUR2 = '$#,##0.00';
+const _PCT = '0.0%';
+const _X = '0.00"x"';
+const _c = (v, z) => ({ v: (v == null || isNaN(v)) ? 0 : v, z: z || _CUR });
+function _aoaSheet(rows, colWidths) {
+  const plain = rows.map(r => r.map(c => (c && typeof c === 'object' && 'v' in c) ? c.v : c));
+  const ws = XLSX.utils.aoa_to_sheet(plain);
+  rows.forEach((r, ri) => r.forEach((c, ci) => {
+    if (c && typeof c === 'object' && c.z) {
+      const ref = XLSX.utils.encode_cell({ r: ri, c: ci });
+      if (ws[ref] && typeof ws[ref].v === 'number') ws[ref].z = c.z;
+    }
+  }));
+  if (colWidths) ws['!cols'] = colWidths.map(w => ({ wch: w }));
+  return ws;
+}
+
+function getSBA() {
+  const g = id => { const el = $(id); return el ? parseNum(el.value) : 0; };
+  return {
+    uses: {
+      'Franchise Fee': g('sba-franchise'),
+      'Initial Marketing Spend': g('sba-marketing'),
+      'Rent Security Deposit': g('sba-deposit'),
+      'Construction / Leasehold Improvements': g('sba-construction'),
+      'Real Estate Purchase': g('sba-realestate'),
+      'Furniture & Fixtures': g('sba-ffe'),
+      'Equipment': g('sba-equipment'),
+      'Inventory': g('sba-inventory'),
+      'Supplies': g('sba-supplies'),
+      'Computer Equipment & Software': g('sba-computer'),
+      'Signage': g('sba-signage'),
+      'Training Expenses / Deposits': g('sba-training'),
+      'Professional Fees (startup)': g('sba-proffees'),
+      'Insurance Premium': g('sba-insprem'),
+      'Working Capital (3 months)': g('sba-workingcap'),
+      'Estimated Closing Costs': g('sba-closing'),
+      'SBA Guaranty / Packaging Fee': g('sba-guaranty'),
+    },
+    equity: {
+      'Cash on Hand / Savings / Rollover': g('sba-eq-cash'),
+      'Liquidated Marketable Securities': g('sba-eq-securities'),
+      'Other': g('sba-eq-other'),
+    },
+    ownerComp: g('sba-owner'), repairs: g('sba-repairs'), localAd: g('sba-localad'),
+    insurance: g('sba-insurance'), office: g('sba-office'), telephone: g('sba-telephone'),
+  };
+}
+
+function sbaRecalc() {
+  const sba = getSBA();
+  const usesTot = Object.values(sba.uses).reduce((a, b) => a + b, 0);
+  const eqTot = Object.values(sba.equity).reduce((a, b) => a + b, 0);
+  if ($('sba-uses-total')) $('sba-uses-total').textContent = '$' + Math.round(usesTot).toLocaleString();
+  if ($('sba-eq-total')) $('sba-eq-total').textContent = '$' + Math.round(eqTot).toLocaleString();
+  const proj = (typeof lnum === 'function') ? lnum('ln-project') : 0;
+  const un = $('sba-uses-note');
+  if (un) {
+    if (!proj) un.textContent = 'Tip: set your Project Total on the Loan Details tab, then make these costs add up to it.';
+    else if (Math.abs(usesTot - proj) < 1) un.textContent = '\u2713 Matches your Project Total of $' + Math.round(proj).toLocaleString() + ' from the Loan Details tab.';
+    else un.textContent = 'These total $' + Math.round(usesTot).toLocaleString() + ', but your Loan Details Project Total is $' + Math.round(proj).toLocaleString() + '. Adjust so they match.';
+  }
+  const en = $('sba-eq-note');
+  if (en) {
+    const need = (typeof _equityInjection === 'function') ? _equityInjection() : 0;
+    if (!need) en.textContent = 'Set your loan structure on the Loan Details tab to see your required equity injection.';
+    else if (Math.abs(eqTot - need) < 1) en.textContent = '\u2713 Matches your required equity injection of $' + Math.round(need).toLocaleString() + '.';
+    else en.textContent = 'Your required equity injection is $' + Math.round(need).toLocaleString() + '; your sources total $' + Math.round(eqTot).toLocaleString() + '.';
+  }
+}
+
+function exportSBA() {
+  if (typeof XLSX === 'undefined') { alert('Excel library is still loading — please try again in a moment.'); return; }
+
+  const s = getS();
+  const sba = getSBA();
+  const xFixed = sba.ownerComp + sba.repairs + sba.localAd + sba.insurance + sba.office + sba.telephone;
+  const name = ($('fi-name').value || '').trim() || 'Franchisee';
+  const loc = ($('fi-location').value || '').trim() || "Ziggi's Coffee";
+  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const GROWTH = 0.03, SBA_MIN = 1.15, STRESS_BUMP = 2, HAIRCUT = 0.70;
+
+  const legs = _loanLegs();
+  const financed = _financed(legs);
+  const projectTotal = lnum('ln-project');
+  const equity = _equityInjection();
+  const baseMonthly = _monthlyPay(legs, 0);
+  const stressMonthly = _monthlyPay(legs, STRESS_BUMP);
+  const annualDS = baseMonthly * 12;
+  const stressAnnualDS = stressMonthly * 12;
+  const hasDebt = annualDS > 0.005;
+  const sched36 = _combinedSchedule(legs, 36, 0);
+
+  // Per-year P&L: sales grow 3%/yr, fixed costs flat, interest from schedule
+  const yrs = [0, 1, 2].map(y => {
+    const factor = Math.pow(1 + GROWTH, y);
+    let yi = 0, yp = 0;
+    for (let m = y * 12; m < y * 12 + 12; m++) { yi += sched36[m].interest; yp += sched36[m].principal; }
+    const r = calc(s.days, s.dayrev * factor, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, yi, s.misc);
+    const opexExclInt = (r.opex - yi) + xFixed;
+    const noi = r.gp - opexExclInt;
+    const netAfterDS = noi - annualDS;
+    const dscr = hasDebt ? noi / annualDS : null;
+    const sdscr = (stressAnnualDS > 0) ? (noi * HAIRCUT) / stressAnnualDS : null;
+    return { factor, r, interest: yi, principal: yp, opexExclInt, noi, netAfterDS, dscr, sdscr,
+             months: sched36.slice(y * 12, y * 12 + 12) };
+  });
+
+  const wb = XLSX.utils.book_new();
+
+  // ---------- Sheet: Statement of Assumptions (first tab) ----------
+  const aStructLabel = loanStruct === '7a' ? 'SBA 7(a)' : 'SBA 504';
+  const r1 = yrs[0].r;
+  const _d = v => '$' + Math.round(v || 0).toLocaleString();
+  const aLoanTerms = loanStruct === '7a'
+    ? lnum('ln-7a-rate').toFixed(2) + '% over ' + lnum('ln-7a-term') + ' years'
+    : legs.map((l, i) => (i === 0 ? '1st ' : '2nd ') + l.ratePct.toFixed(2) + '% / ' + l.years + ' yr').join('  +  ');
+  const assum = [
+    [name + '  —  ' + loc],
+    ["Ziggi's Coffee \u00b7 SBA Financial Projection — Statement of Assumptions"],
+    ['Prepared ' + today],
+    ['How each projected figure was derived. Complete the right-hand column in your own words — the bracketed [ ] notes there are hints; replace them with your own explanation. Lenders read these closely, so keep estimates conservative and supportable.'],
+    [],
+    ['Item', 'Basis (from your inputs)', 'Your explanation / support (replace the [bracketed] hints)'],
+    [],
+    ['REVENUE', '', ''],
+    ['  Average daily sales', _d(s.dayrev) + ' per operating day', '[REQUIRED — explain why this is realistic: menu pricing, expected daily customers/tickets, comparable Ziggi\'s locations, local traffic & market]'],
+    ['  Operating days', s.days + ' days per year', ''],
+    ['  Gross sales (Year 1)', _d(r1.rev) + '  (daily x days)', ''],
+    ['  Discounts', s.disc + '% of gross sales', '[Promotions, loyalty, employee discounts]'],
+    ['  Net sales (Year 1)', _d(r1.netSales), ''],
+    ['  Sales growth, Years 2-3', (GROWTH * 100).toFixed(0) + '% per year', '[Keep conservative; justify any growth]'],
+    [],
+    ['COST OF SALES', '', ''],
+    ['  Cost of goods sold', s.cogs + '% of gross sales', '[Product/beverage cost per the Ziggi\'s model and your vendor pricing]'],
+    [],
+    ['OPERATING EXPENSES', '', ''],
+    ['  Labor (payroll & taxes)', s.laborPct + '% of gross sales', '[Staffing plan, wage rates, payroll taxes & benefits]'],
+    ["  Owner's compensation", _d(sba.ownerComp) + ' per year', '[Your planned salary / draw]'],
+    ['  Royalty fee', s.roy + '% of net sales', '[Per the Franchise Disclosure Document]'],
+    ['  Marketing fund', '1% of net sales', '[Per the FDD]'],
+    ['  Bank & credit card fees', '2.75% of net sales', '[Merchant processing rate]'],
+    ['  Rent + NNN', _d(s.rent) + ' per year', '[Your lease: base rent plus NNN]'],
+    ['  Computer & software', _d(s.dues) + ' per year', '[POS, scheduling, accounting, loyalty subscriptions]'],
+    ['  Utilities (bundled occupancy)', _d(s.occ) + ' per year', '[Bundled: utilities, insurance, cleaning, internet, trash, etc.]'],
+    ['  Legal & professional', _d(s.prof) + ' per year', ''],
+    ['  Repairs & maintenance', _d(sba.repairs) + ' per year', ''],
+    ['  Local advertising', _d(sba.localAd) + ' per year', ''],
+    ['  Insurance', _d(sba.insurance) + ' per year', ''],
+    ['  Office expense', _d(sba.office) + ' per year', ''],
+    ['  Telephone & internet', _d(sba.telephone) + ' per year', ''],
+    ['  Miscellaneous', _d(s.misc) + ' per year', '[Supplies, uniforms, licenses, bank charges, etc.]'],
+    [],
+    ['FINANCING & DEBT SERVICE', '', ''],
+    ['  Loan structure', aStructLabel, ''],
+    ['  Total project cost', _d(projectTotal), '[Total cost to open — see Sources & Uses]'],
+    ['  Equity / cash injection', _d(equity), '[Your down payment / cash invested]'],
+    ['  Loan amount financed', _d(financed), ''],
+    ['  Loan terms', aLoanTerms, ''],
+    ['  Monthly payment (P&I)', _d(baseMonthly), ''],
+    ['  Annual debt service', _d(annualDS), ''],
+    ['  DSCR target', SBA_MIN.toFixed(2) + 'x minimum (NOI / annual debt service)', '[Lenders generally want 1.15-1.25x or higher within the first two years]'],
+    [],
+    ['Disclaimer: planning purposes only; not an earnings claim by Ziggi\'s Coffee. Actual results vary. Review the FDD and consult qualified advisors.'],
+  ];
+  XLSX.utils.book_append_sheet(wb, _aoaSheet(assum, [30, 40, 58]), 'Assumptions');
+
+  // ---------- Sheet: Sources and Uses ----------
+  const _uList = [
+    ['  Franchise Fee', sba.uses['Franchise Fee']],
+    ['  Initial Marketing Spend', sba.uses['Initial Marketing Spend']],
+    ['  Rent Security Deposit', sba.uses['Rent Security Deposit']],
+    ['  Construction / Leasehold Improvements', sba.uses['Construction / Leasehold Improvements']],
+    ['  Real Estate Purchase', sba.uses['Real Estate Purchase']],
+    ['  Furniture & Fixtures', sba.uses['Furniture & Fixtures']],
+    ['  Equipment', sba.uses['Equipment']],
+    ['  Inventory', sba.uses['Inventory']],
+    ['  Supplies', sba.uses['Supplies']],
+    ['  Computer Equipment & Software', sba.uses['Computer Equipment & Software']],
+    ['  Signage', sba.uses['Signage']],
+    ['  Training Expenses / Deposits', sba.uses['Training Expenses / Deposits']],
+    ['  Professional Fees (startup)', sba.uses['Professional Fees (startup)']],
+    ['  Insurance Premium', sba.uses['Insurance Premium']],
+    ['  Working Capital (3 months)', sba.uses['Working Capital (3 months)']],
+    ['  Estimated Closing Costs', sba.uses['Estimated Closing Costs']],
+    ['  SBA Guaranty / Packaging Fee', sba.uses['SBA Guaranty / Packaging Fee']],
+  ];
+  const _usesTot = _uList.reduce((a, r) => a + r[1], 0);
+  const _eList = [
+    ['  Cash on Hand / Savings / Rollover', sba.equity['Cash on Hand / Savings / Rollover']],
+    ['  Liquidated Marketable Securities', sba.equity['Liquidated Marketable Securities']],
+    ['  Other', sba.equity['Other']],
+  ];
+  const _eqTot = _eList.reduce((a, r) => a + r[1], 0);
+  const su = [
+    [name + '  —  ' + loc],
+    ['SBA Financial Projection · Sources and Uses of Funds'],
+    ['Prepared ' + today],
+    ['Itemize Uses of Funds from FDD Item 7; do not exceed the FDD ranges.'],
+    [],
+    ['USES OF FUNDS', 'Total Amount'],
+    ..._uList.map(r => [r[0], _c(r[1])]),
+    ['  Total Uses of Funds', _c(_usesTot)],
+    [],
+    ['PROJECT COST & FINANCING (from loan calculator)', 'Amount', '% of Project'],
+    ['  Total Project Cost', _c(projectTotal), _c(1, _PCT)],
+    ['  Equity / Cash Injection', _c(equity), _c(projectTotal ? equity / projectTotal : 0, _PCT)],
+    ['  Loan Amount (financed)', _c(financed), _c(projectTotal ? financed / projectTotal : 0, _PCT)],
+    [(projectTotal && Math.abs(_usesTot - projectTotal) >= 1)
+      ? '  NOTE: Total Uses ($' + Math.round(_usesTot).toLocaleString() + ') does not equal Total Project Cost ($' + Math.round(projectTotal).toLocaleString() + ') — reconcile before submitting.'
+      : '  Uses reconcile to Total Project Cost.'],
+    [],
+    ['SOURCES OF EQUITY INJECTION', 'Amount'],
+    ..._eList.map(r => [r[0], _c(r[1])]),
+    ['  Total Equity Sources', _c(_eqTot)],
+    ['  (should equal Equity / Cash Injection above: $' + Math.round(equity).toLocaleString() + ')'],
+  ];
+    XLSX.utils.book_append_sheet(wb, _aoaSheet(su, [46, 16, 14]), 'Sources and Uses');
+
+  // ---------- Sheet: Loan Amortization ----------
+  let maxMonths;
+  if (loanStruct === '7a') maxMonths = Math.round(lnum('ln-7a-term') * 12);
+  else maxMonths = Math.round(Math.max(lnum('ln-504-conv-term'), lnum('ln-504-sba-term')) * 12);
+  maxMonths = Math.min(maxMonths || 0, 480);
+  const full = _combinedSchedule(legs, maxMonths, 0);
+  const amort = [
+    [name + '  —  ' + loc],
+    ['Loan Amortization · ' + (loanStruct === '7a' ? 'SBA 7(a)' : 'SBA 504 (combined 1st + 2nd)')],
+    ['Prepared ' + today],
+    [],
+    ['Loan amount financed', _c(financed)],
+    ['Monthly payment (P&I)', _c(baseMonthly, _CUR2)],
+    ['Annual debt service (P&I)', _c(annualDS)],
+    ['STRESS TEST — monthly payment at rate + ' + STRESS_BUMP + '%', _c(stressMonthly, _CUR2)],
+    ['STRESS TEST — annual debt service', _c(stressAnnualDS)],
+    [],
+    ['Month', 'Payment (P&I)', 'Interest', 'Principal', 'Ending Balance'],
+    ...full.map((x, i) => ['Month ' + (i + 1), _c(x.payment, _CUR2), _c(x.interest, _CUR2), _c(x.principal, _CUR2), _c(x.balance, _CUR2)]),
+  ];
+  XLSX.utils.book_append_sheet(wb, _aoaSheet(amort, [12, 16, 14, 14, 16]), 'Loan Amortization');
+
+  // ---------- Year sheets (monthly) ----------
+  const blanks12 = Array(12).fill('');
+  function yearSheet(y) {
+    const yd = yrs[y], r = yd.r;
+    const startM = y * 12 + 1;
+    const monthHdr = ['MONTHS', '', ...Array.from({ length: 12 }, (_, i) => 'Month ' + (startM + i)), 'Total', '% of Sales'];
+    const flat = (label, annual, neg) => { const m = annual / 12 * (neg ? -1 : 1); return [label, '', ...Array(12).fill(0).map(() => _c(m)), _c(m * 12), _c(r.netSales ? Math.abs(annual) / r.netSales : 0, _PCT)]; };
+    const series = (label, arr, neg) => { const a = arr.map(v => v * (neg ? -1 : 1)); const t = a.reduce((x, z) => x + z, 0); return [label, '', ...a.map(v => _c(v)), _c(t), '']; };
+    const totalOnly = (label, val, z, extra) => { const row = [label, '', ...blanks12, _c(val, z)]; row.push(extra == null ? '' : extra); return row; };
+    const pays = yd.months.map(m => m.payment);
+    const ints = yd.months.map(m => m.interest);
+    const noiM = yd.noi / 12;
+    const netInc = pays.map(p => noiM - p);
+
+    const rows = [
+      ['YEAR ' + (y + 1)],
+      monthHdr,
+      ['Revenue'],
+      flat('  Revenue (gross sales)', r.rev),
+      flat('  Less: Discounts (' + s.disc + '%)', r.discAmt, true),
+      ['Total Sales (net)', '', ...Array(12).fill(0).map(() => _c(r.netSales / 12)), _c(r.netSales), ''],
+      [],
+      ['Cost of Goods Sold'],
+      flat('  Cost of Products Sold/Used', r.cogsAmt, true),
+      ['Gross Profit', '', ...Array(12).fill(0).map(() => _c(r.gp / 12)), _c(r.gp), _c(r.netSales ? r.gp / r.netSales : 0, _PCT)],
+      [],
+      ['Expenses'],
+      flat("  Owner's Compensation", sba.ownerComp, true),
+      flat('  Payroll & Payroll Expenses', r.compAmt, true),
+      flat('  Repairs & Maintenance', sba.repairs, true),
+      flat('  Rent', r.rent, true),
+      flat('  Local Advertising', sba.localAd, true),
+      flat('  Insurance', sba.insurance, true),
+      flat('  Legal & Professional', r.prof, true),
+      flat('  Office Expense', sba.office, true),
+      flat('  Computer and Software', r.dues, true),
+      flat('  Bank & Credit Card Fees', r.merch, true),
+      flat('  Utilities', r.occ, true),
+      flat('  Telephone & Internet', sba.telephone, true),
+      flat('  Miscellaneous', r.misc, true),
+      flat('  Royalty Fee', r.royAmt, true),
+      flat('  Marketing Fund Contribution', r.adAmt, true),
+      ['Total Expenses', '', ...Array(12).fill(0).map(() => _c(-yd.opexExclInt / 12)), _c(-yd.opexExclInt), _c(r.netSales ? yd.opexExclInt / r.netSales : 0, _PCT)],
+      [],
+      ['Net Operating Income', '', ...Array(12).fill(0).map(() => _c(noiM)), _c(yd.noi), _c(r.netSales ? yd.noi / r.netSales : 0, _PCT)],
+      series('Total Loan Payment', pays, true),
+      ['Net Income (after debt service)', '', ...netInc.map(v => _c(v)), _c(netInc.reduce((a, b) => a + b, 0)), ''],
+      [],
+      ['DEBT SERVICE COVERAGE'],
+      totalOnly('  Debt Service Coverage Ratio (DSCR)', yd.dscr == null ? 0 : yd.dscr, _X, yd.dscr == null ? 'no debt' : (yd.dscr >= SBA_MIN ? 'PASS (≥1.15x)' : 'REVIEW (<1.15x)')),
+      totalOnly('  Stressed DSCR (NOI −30%, rate +2%)', yd.sdscr == null ? 0 : yd.sdscr, _X, yd.sdscr == null ? 'no debt' : (yd.sdscr >= SBA_MIN ? 'PASS (≥1.15x)' : 'FAIL (<1.15x)')),
+      ['  SBA minimum', '', ...blanks12, '1.15x'],
+    ];
+
+    if (y === 0) {
+      const roi = (yrs[0].netAfterDS) ? (yrs[0].netAfterDS - equity) / yrs[0].netAfterDS * 100 : 0;
+      rows.push([]);
+      rows.push(['  Equity / cash injection', '', ...blanks12, _c(equity)]);
+      rows.push(['  Year-1 simple return on equity injection', '', ...blanks12, _c(roi / 100, '0.0%')]);
+      rows.push([]);
+      rows.push(['ASSUMPTIONS: See the "Assumptions" sheet (first tab) for the full statement of assumptions behind these figures.']);
+    } else {
+      rows.push([]);
+      rows.push(['Assumptions: sales grown 3% over Year ' + y + '; all other assumptions per Year 1.']);
+    }
+    return _aoaSheet(rows, [34, 3, ...Array(12).fill(11), 13, 11]);
+  }
+  XLSX.utils.book_append_sheet(wb, yearSheet(0), 'Year 1');
+  XLSX.utils.book_append_sheet(wb, yearSheet(1), 'Year 2');
+  XLSX.utils.book_append_sheet(wb, yearSheet(2), 'Year 3');
+
+  const safe = (name + '_' + loc).replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'Ziggis';
+  XLSX.writeFile(wb, 'SBA_3yr_Projection_' + safe + '.xlsx');
+}
+
+update();
+sbaRecalc();
+</script>
+
+<style>
+@media print {
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  body > *:not(#pdf-summary) { display: none !important; }
+  #pdf-summary { display: block !important; }
+}
+#pdf-summary {
+  display: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1e1410;
+  padding: 36px 44px;
+  max-width: 780px;
+  margin: 0 auto;
+}
+#pdf-summary .pdf-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  border-bottom: 3px solid #CFA571; padding-bottom: 14px; margin-bottom: 22px;
+}
+#pdf-summary .pdf-logo { font-family: 'Raleway', sans-serif; font-size: 22px; font-weight: 800; color: #441D1F; }
+#pdf-summary .pdf-logo span { color: #CFA571; }
+#pdf-summary .pdf-meta { text-align: right; font-size: 11px; color: #7a6a5a; line-height: 1.7; }
+#pdf-summary .pdf-meta strong { color: #1e1410; font-weight: 600; }
+#pdf-summary .pdf-kpis {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 22px;
+}
+#pdf-summary .pdf-kpi {
+  background: #f5ead8; border-radius: 8px; padding: 12px 14px;
+  border-left: 3px solid #CFA571;
+}
+#pdf-summary .pdf-kpi.blue { background: #e4f2f8; border-left-color: #72B1CB; }
+#pdf-summary .pdf-kpi-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #7a6a5a; margin-bottom: 4px; }
+#pdf-summary .pdf-kpi-val { font-size: 20px; font-weight: 700; font-family: 'Raleway', sans-serif; color: #441D1F; }
+#pdf-summary .pdf-kpi-sub { font-size: 10px; color: #7a6a5a; margin-top: 2px; }
+#pdf-summary .pdf-kpi-val.pos { color: #2a7a4b; }
+#pdf-summary .pdf-kpi-val.neg { color: #c0392b; }
+#pdf-summary .pdf-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+#pdf-summary .pdf-section-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+  color: #441D1F; margin-bottom: 10px; padding-bottom: 5px;
+  border-bottom: 1px solid #e2d9ce;
+}
+#pdf-summary table { width: 100%; border-collapse: collapse; font-size: 12px; }
+#pdf-summary table td { padding: 4px 0; border-bottom: 1px solid #f0ebe3; color: #4a3a2a; }
+#pdf-summary table td:last-child { text-align: right; font-variant-numeric: tabular-nums; color: #1e1410; }
+#pdf-summary table .sub td { padding-left: 14px; font-size: 11px; color: #7a6a5a; }
+#pdf-summary table .sub td:last-child { color: #7a6a5a; }
+#pdf-summary table .total td { font-weight: 600; background: #f0ebe3; padding: 4px 6px; }
+#pdf-summary table .net td { font-weight: 700; font-size: 13px; background: #e4f2f8; padding: 5px 6px; color: #3d7fa0; }
+#pdf-summary table .spacer td { border: none; height: 4px; }
+#pdf-summary .pdf-assumptions { margin-bottom: 18px; }
+#pdf-summary .pdf-asmp-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+#pdf-summary .pdf-kv-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid #f0ebe3; font-size: 11.5px; }
+#pdf-summary .pdf-kv-row:last-child { border: none; }
+#pdf-summary .pdf-kv-label { color: #7a6a5a; }
+#pdf-summary .pdf-kv-val { font-weight: 600; color: #1e1410; }
+#pdf-summary .pdf-hc-row { display: flex; align-items: baseline; gap: 8px; padding: 3px 0; border-bottom: 1px solid #f0ebe3; font-size: 11px; }
+#pdf-summary .pdf-hc-row:last-child { border: none; }
+#pdf-summary .pdf-hc-icon { font-size: 10px; width: 14px; flex-shrink: 0; }
+#pdf-summary .pdf-hc-label { color: #4a3a2a; flex: 1; }
+#pdf-summary .pdf-hc-val { font-weight: 600; }
+#pdf-summary .pdf-hc-val.ok { color: #2a7a4b; }
+#pdf-summary .pdf-hc-val.flag { color: #c0392b; }
+#pdf-summary .pdf-asmp-item {
+  background: #f7f4f0; border-radius: 6px; padding: 9px 11px;
+  border-left: 2px solid #e2d9ce;
+}
+#pdf-summary .pdf-asmp-item.flag { border-left-color: #CFA571; }
+#pdf-summary .pdf-asmp-item.ok   { border-left-color: #2a7a4b; }
+#pdf-summary .pdf-asmp-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #7a6a5a; margin-bottom: 3px; }
+#pdf-summary .pdf-asmp-val { font-size: 15px; font-weight: 700; font-family: 'Raleway', sans-serif; color: #1e1410; }
+#pdf-summary .pdf-scenarios { margin-bottom: 18px; }
+#pdf-summary .pdf-sc-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #f0ebe3; font-size: 12px; }
+#pdf-summary .pdf-sc-row:last-child { border: none; }
+#pdf-summary .pdf-sc-name { color: #4a3a2a; }
+#pdf-summary .pdf-sc-net { font-weight: 600; font-family: 'Raleway', sans-serif; }
+#pdf-summary .pdf-sc-net.pos { color: #2a7a4b; }
+#pdf-summary .pdf-sc-net.neg { color: #c0392b; }
+#pdf-summary .pdf-sc-margin { font-size: 11px; color: #7a6a5a; }
+#pdf-summary .pdf-footer {
+  border-top: 1px solid #e2d9ce; padding-top: 10px; margin-top: 8px;
+  font-size: 10px; color: #a09080; display: flex; justify-content: space-between;
+}
+#pdf-summary .pdf-note {
+  background: #fdf3e3; border-left: 3px solid #CFA571; border-radius: 0 5px 5px 0;
+  padding: 8px 12px; font-size: 11px; color: #6b3a0a; margin-bottom: 18px; line-height: 1.5;
+}
+#pdf-summary .pdf-disclaimer {
+  border: 1px solid #a07840;
+  border-radius: 6px;
+  background: #fdf3e3;
+  margin-top: 16px; padding: 12px 16px;
+  font-size: 11px; color: #4a3a2a; line-height: 1.7;
+}
+#pdf-summary .pdf-disclaimer strong { color: #441D1F; font-weight: 700; font-size: 12px; display: block; margin-bottom: 4px; }
+#pdf-summary .pdf-watermark {
+  position: fixed; top: 50%; left: 50%;
+  transform: translate(-50%, -50%) rotate(-35deg);
+  font-size: 54px; font-weight: 800;
+  font-family: 'Raleway', sans-serif;
+  color: rgba(207,165,113,0.09);
+  white-space: nowrap; pointer-events: none;
+  letter-spacing: 0.06em; z-index: 0;
+}
+</style>
+
+<div id="pdf-summary">
+  <div class="pdf-header">
+    <div>
+      <div class="pdf-logo">Ziggi's <span>Site Pro Forma</span></div>
+      <div style="font-size:12px;color:#7a6a5a;margin-top:3px;">Financial Projection Summary</div>
+    </div>
+    <div class="pdf-meta">
+      <strong id="pdf-meta-name">Franchisee Financial Model</strong><br>
+      <span id="pdf-meta-location">Ziggi's Coffee</span><br>
+      <span id="pdf-date"></span>
+    </div>
+  </div>
+
+  <div class="pdf-kpis">
+    <div class="pdf-kpi">
+      <div class="pdf-kpi-label">Total Revenue</div>
+      <div class="pdf-kpi-val" id="pdf-kpi-rev">—</div>
+      <div class="pdf-kpi-sub" id="pdf-kpi-rev-sub">—</div>
+    </div>
+    <div class="pdf-kpi">
+      <div class="pdf-kpi-label">Gross Profit</div>
+      <div class="pdf-kpi-val" id="pdf-kpi-gp">—</div>
+      <div class="pdf-kpi-sub" id="pdf-kpi-gp-sub">—</div>
+    </div>
+    <div class="pdf-kpi blue">
+      <div class="pdf-kpi-label">Net Income</div>
+      <div class="pdf-kpi-val" id="pdf-kpi-net">—</div>
+      <div class="pdf-kpi-sub" id="pdf-kpi-net-sub">—</div>
+    </div>
+    <div class="pdf-kpi blue">
+      <div class="pdf-kpi-label">Net Margin</div>
+      <div class="pdf-kpi-val" id="pdf-kpi-margin">—</div>
+      <div class="pdf-kpi-sub">of gross revenue</div>
+    </div>
+  </div>
+
+  <div class="pdf-two-col">
+    <div>
+      <div class="pdf-section-title">Projected Income Statement</div>
+      <table>
+        <tr><td>Gross sales</td><td id="pdf-p-rev">—</td></tr>
+        <tr class="sub"><td>Less: Discounts</td><td id="pdf-p-disc">—</td></tr>
+        <tr class="total"><td>Net sales</td><td id="pdf-p-net-sales">—</td></tr>
+        <tr class="sub"><td>Cost of goods sold</td><td id="pdf-p-cogs">—</td></tr>
+        <tr class="total"><td>Gross profit</td><td id="pdf-p-gp">—</td></tr>
+        <tr class="spacer"><td colspan="2"></td></tr>
+        <tr class="sub"><td>Labor</td><td id="pdf-p-comp">—</td></tr>
+        <tr class="sub"><td>Advertising &amp; marketing (1% of net)</td><td id="pdf-p-ad">—</td></tr>
+        <tr class="sub"><td>Royalties</td><td id="pdf-p-roy">—</td></tr>
+        <tr class="sub"><td>Merchant fees (2.75% of net)</td><td id="pdf-p-merch">—</td></tr>
+        <tr class="sub"><td>Tenant Rent &amp; NNN</td><td id="pdf-p-rent">—</td></tr>
+        <tr class="sub"><td>Dues &amp; Subscriptions</td><td id="pdf-p-dues">—</td></tr>
+        <tr class="sub"><td>Occupancy</td><td id="pdf-p-occ">—</td></tr>
+        <tr class="sub"><td>Professional Fees</td><td id="pdf-p-prof">—</td></tr>
+        <tr class="sub"><td>Misc.</td><td id="pdf-p-misc">—</td></tr>
+        <tr class="sub"><td>Loan interest (Year 1)</td><td id="pdf-p-truck">—</td></tr>
+        <tr class="total"><td>Total operating expenses</td><td id="pdf-p-opex">—</td></tr>
+        <tr class="spacer"><td colspan="2"></td></tr>
+        <tr class="net"><td>Net income</td><td id="pdf-p-net">—</td></tr>
+        <tr class="spacer"><td colspan="2"></td></tr>
+        <tr class="sub"><td>Less: Loan principal (Year 1)</td><td id="pdf-p-prin">—</td></tr>
+        <tr class="net"><td>Net cash flow after debt service</td><td id="pdf-p-ncf">—</td></tr>
+      </table>
+    </div>
+    <div>
+      <div class="pdf-section-title">Key Assumptions</div>
+      <div id="pdf-asmp-grid" style="font-size:12px;"></div>
+
+      <div class="pdf-section-title" style="margin-top:14px;">Scenario Comparison</div>
+      <div id="pdf-scenarios"></div>
+
+      <div class="pdf-section-title" style="margin-top:14px;">Model Health Check</div>
+      <div id="pdf-health"></div>
+    </div>
+  </div>
+
+  <div class="pdf-watermark">NOT AN EARNINGS CLAIM</div>
+
+  <div class="pdf-disclaimer">
+    <strong>Disclaimer:</strong> This tool is provided for general informational and planning purposes only and does not constitute a financial performance representation or earnings claim by Ziggi's Coffee. Actual results will vary based on a wide range of factors including location, market conditions, management, and other variables. Ziggi's Coffee makes no guarantee of profitability or specific financial outcomes. Franchisees should review the Franchise Disclosure Document carefully and consult their own qualified legal, tax, and financial advisors before making any business or financial decision.
+  </div>
+
+  <div class="pdf-footer">
+    <span>Ziggi's Coffee · Franchisee Financial Projection · Confidential</span>
+    <span id="pdf-date-footer"></span>
+  </div>
+</div>
+</body>
+</html>
