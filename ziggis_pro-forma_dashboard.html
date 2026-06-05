@@ -529,6 +529,7 @@
             <tr class="sub"><td>Royalties</td><td id="p-roy">—</td></tr>
             <tr class="sub"><td>Merchant fees (2.75% of net)</td><td id="p-merch">—</td></tr>
             <tr class="sub"><td>Tenant Rent &amp; NNN <span class="info-dot">i<span class="tip"><b>Annual lease cost.</b> Base rent plus NNN (triple net): property taxes, building insurance, and common area maintenance. Enter your full yearly amount; leave $0 if you own the property.</span></span> <span class="edit-hint">✎</span></td><td><input class="pnl-input" id="in-rent" type="text" value="$0" oninput="liveComma(this)" onblur="fmtInput(this)" onfocus="stripInput(this)" onchange="update()"></td></tr>
+            <tr class="sub"><td>Property &amp; Personal Property Tax <span class="info-dot">i<span class="tip"><b>Annual property tax.</b> Real-estate property tax (if you own the building) plus any personal-property / business-equipment tax your county levies. Leave $0 if you lease and it is already included in your NNN above, to avoid double-counting.</span></span> <span class="edit-hint">✎</span></td><td><input class="pnl-input" id="in-ptax" type="text" value="$0" oninput="liveComma(this)" onblur="fmtInput(this)" onfocus="stripInput(this)" onchange="update()"></td></tr>
             <tr class="sub"><td>Dues &amp; Subscriptions <span class="info-dot">i<span class="tip"><b>Includes, for example:</b> POS &amp; back-office software, scheduling, loyalty/gift platform, accounting software, music — e.g. Revel POS, QuickBooks Online, When I Work, Paytronix, music &amp; subscriptions.</span></span> <span class="edit-hint">✎</span></td><td><input class="pnl-input" id="in-dues" type="text" value="$10,570" oninput="liveComma(this)" onblur="fmtInput(this)" onfocus="stripInput(this)" onchange="update()"></td></tr>
             <tr class="sub"><td>Occupancy <span class="info-dot">i<span class="tip"><b>Includes, for example:</b> Utilities (electric/gas/water), liability insurance, cleaning, dish &amp; ice machine rental, internet, telephone, pest control, security/ADT, trash, linens, landscape/snow removal.</span></span> <span class="edit-hint">✎</span></td><td><input class="pnl-input" id="in-occ" type="text" value="$33,520" oninput="liveComma(this)" onblur="fmtInput(this)" onfocus="stripInput(this)" onchange="update()"></td></tr>
             <tr class="sub"><td>Professional Fees <span class="info-dot">i<span class="tip"><b>Includes, for example:</b> Accounting and legal fees.</span></span> <span class="edit-hint">✎</span></td><td><input class="pnl-input" id="in-prof" type="text" value="$5,000" oninput="liveComma(this)" onblur="fmtInput(this)" onfocus="stripInput(this)" onchange="update()"></td></tr>
@@ -783,7 +784,7 @@ function liveComma(el) {
   update();
 }
 
-function calc(days, dayrev, disc, cogs, laborPct, roy, royOnSales, rent, dues, occ, prof, truck, misc) {
+function calc(days, dayrev, disc, cogs, laborPct, roy, royOnSales, rent, dues, occ, prof, truck, misc, ptax) {
   const rev = days * dayrev;                      // gross sales
   const discAmt = rev * (disc || 0) / 100;         // discounts
   const netSales = rev - discAmt;                  // net sales
@@ -793,10 +794,10 @@ function calc(days, dayrev, disc, cogs, laborPct, roy, royOnSales, rent, dues, o
   const compAmt = rev * laborPct / 100;            // labor on GROSS sales
   const adAmt = netSales * 0.01;                   // advertising & marketing on NET sales
   const merch = netSales * 0.0275;                 // merchant fees on NET sales
-  rent = rent ?? 0; dues = dues ?? 0; occ = occ ?? 0; prof = prof ?? 0; truck = truck ?? 0; misc = misc ?? 0;
-  const opex = compAmt + adAmt + royAmt + merch + rent + dues + occ + prof + truck + misc;
+  rent = rent ?? 0; dues = dues ?? 0; occ = occ ?? 0; prof = prof ?? 0; truck = truck ?? 0; misc = misc ?? 0; ptax = ptax ?? 0;
+  const opex = compAmt + adAmt + royAmt + merch + rent + dues + occ + prof + truck + misc + ptax;
   const net = gp - opex;
-  return { rev, discAmt, netSales, cogsAmt, gp, royAmt, compAmt, adAmt, merch, rent, dues, occ, prof, truck, misc, opex, net, laborPct };
+  return { rev, discAmt, netSales, cogsAmt, gp, royAmt, compAmt, adAmt, merch, rent, dues, occ, prof, truck, misc, ptax, opex, net, laborPct };
 }
 
 function getS() {
@@ -814,6 +815,7 @@ function getS() {
     prof:      parseInput('in-prof'),
     rent:      parseInput('in-rent'),
     misc:      parseInput('in-misc'),
+    ptax:      parseInput('in-ptax'),
     truck:     ly.interest,          // loan INTEREST only — the income-statement expense
     loanPrin:  ly.principal,         // principal repayment — balance sheet, not net income
     loanPay:   ly.interest + ly.principal,  // full annual debt service (cash)
@@ -947,7 +949,7 @@ function showTab(id, btn) {
   $('panel-' + id).classList.add('active');
   btn.classList.add('active');
   if (id === 'loan') renderLoan();
-  if (id === 'assumptions') { const s = getS(); const r = calc(s.days, s.dayrev, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc); renderHealthCheck(s, r); }
+  if (id === 'assumptions') { const s = getS(); const r = calc(s.days, s.dayrev, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc, s.ptax); renderHealthCheck(s, r); }
   setTimeout(() => redraw(id), 30);
 }
 
@@ -1034,7 +1036,7 @@ function renderHealthCheck(s, r) {
 function update() {
   renderLoan();
   const s = getS();
-  const r = calc(s.days, s.dayrev, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc);
+  const r = calc(s.days, s.dayrev, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc, s.ptax);
 
   // COGS label
   const lc = $('lbl-cogs');
@@ -1118,7 +1120,7 @@ function update() {
 
 function redraw(tab) {
   const s = getS();
-  const r = calc(s.days, s.dayrev, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc);
+  const r = calc(s.days, s.dayrev, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc, s.ptax);
 
   if (tab === 'pnl') {
     const dd = [r.discAmt, r.cogsAmt, r.opex, Math.max(r.net, 0)];
@@ -1131,12 +1133,12 @@ function redraw(tab) {
           plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + c.label + ': ' + fmtP(c.raw) + ' (' + pctOf(c.raw, r.rev) + ')' } } } }
       });
     }
-    const od = [r.compAmt, r.adAmt, r.royAmt, r.merch, r.rent, r.truck, r.occ, r.dues, r.prof, r.misc];
+    const od = [r.compAmt, r.adAmt, r.royAmt, r.merch, r.rent, r.ptax, r.truck, r.occ, r.dues, r.prof, r.misc];
     if (charts.opex) { charts.opex.data.datasets[0].data = od; charts.opex.update('none'); }
     else {
       charts.opex = new Chart($('ch-opex'), {
         type: 'bar',
-        data: { labels: ['Labor','Advertising','Royalties','Merchant fees','Rent & NNN','Loan interest','Occupancy','Dues & subs','Professional','Misc.'], datasets: [{ data: od, backgroundColor: '#e4f2f8', borderColor: '#72B1CB', borderWidth: 1, borderRadius: 3 }] },
+        data: { labels: ['Labor','Advertising','Royalties','Merchant fees','Rent & NNN','Property tax','Loan interest','Occupancy','Dues & subs','Professional','Misc.'], datasets: [{ data: od, backgroundColor: '#e4f2f8', borderColor: '#72B1CB', borderWidth: 1, borderRadius: 3 }] },
         options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false,
           plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + fmtP(c.raw) } } },
           scales: { x: { grid: { color: '#f0ebe3' }, ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'K', font: { size: 10 } } }, y: { grid: { display: false }, ticks: { font: { size: 10 } } } } }
@@ -1147,7 +1149,7 @@ function redraw(tab) {
   if (tab === 'waterfall') {
     const c2 = r.gp, c3 = c2 - r.compAmt, cAd = c3 - r.adAmt, c4 = cAd - r.royAmt, c5 = c4 - r.merch, c6 = c5 - r.truck;
     const wfBase = [0, 0, 0, c2, c3, cAd, c4, c5, c6, 0];
-    const wfBar  = [r.rev, r.netSales, r.gp, -r.compAmt, -r.adAmt, -r.royAmt, -r.merch, -r.truck, -(r.rent+r.dues+r.occ+r.prof+r.misc), r.net];
+    const wfBar  = [r.rev, r.netSales, r.gp, -r.compAmt, -r.adAmt, -r.royAmt, -r.merch, -r.truck, -(r.rent+r.dues+r.occ+r.prof+r.misc+r.ptax), r.net];
     const isTot  = [true, true, true, false, false, false, false, false, false, true];
     const bgs    = wfBar.map((v,i) => isTot[i] ? '#CFA571' : (v>=0 ? '#CFA571' : '#f4a39e'));
     const bords  = wfBar.map((v,i) => isTot[i] ? '#a07840' : (v>=0 ? '#a07840' : '#c0392b'));
@@ -1178,7 +1180,7 @@ function redraw(tab) {
       { label: 'Base',  mult: 1.0, tag:'your estimate', bg:'#f5ead8', border:'#a07840', tc:'#6b3a0a' },
       { label: 'Bull',  mult: 1.2, tag:'+20% revenue', bg:'#eaf5ee', border:'#2a7a4b', tc:'#14532d' },
     ];
-    const scR = scDefs.map(d => calc(s.days, s.dayrev * d.mult, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc));
+    const scR = scDefs.map(d => calc(s.days, s.dayrev * d.mult, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc, s.ptax));
     if (charts.sc) {
       charts.sc.data.datasets[0].data = scR.map(r => Math.round(r.net));
       charts.sc.data.datasets[0].backgroundColor = scDefs.map(d => d.bg);
@@ -1218,6 +1220,7 @@ function resetDefaults() {
   $('lbl-labor').value  = '0%';
   $('lbl-roy').value    = '6.0%';
   $('in-rent').value = '$0';
+  $('in-ptax').value = '$0';
   $('in-dues').value = '$10,570';
   $('in-occ').value  = '$33,520';
   $('in-prof').value  = '$5,000';
@@ -1234,7 +1237,7 @@ function resetDefaults() {
 
 function printSummary() {
   const s = getS();
-  const r = calc(s.days, s.dayrev, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc);
+  const r = calc(s.days, s.dayrev, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc, s.ptax);
   const dateStr = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
 
   // Header — franchisee name & location
@@ -1267,6 +1270,7 @@ function printSummary() {
   $('pdf-p-roy').textContent  = fmtD(-r.royAmt);
   $('pdf-p-merch').textContent = fmtD(-r.merch);
   $('pdf-p-rent').textContent = fmtD(-r.rent);
+  $('pdf-p-ptax').textContent = fmtD(-r.ptax);
   $('pdf-p-dues').textContent = fmtD(-r.dues);
   $('pdf-p-occ').textContent  = fmtD(-r.occ);
   $('pdf-p-prof').textContent  = fmtD(-r.prof);
@@ -1279,7 +1283,7 @@ function printSummary() {
   const pcfEl = $('pdf-p-ncf'); pcfEl.textContent = fmtP(pncf); pcfEl.className = pncf < 0 ? 'neg' : '';
 
   // Key Assumptions — clean key/value rows, no jargon
-  const bull = calc(s.days, s.dayrev * 1.2, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc);
+  const bull = calc(s.days, s.dayrev * 1.2, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc, s.ptax);
   const _contrib  = s.days ? (r.gp - r.royAmt - r.merch - r.compAmt - r.adAmt) / s.days : 0;
   const be        = _contrib > 0 ? Math.ceil((r.rent + r.dues + r.occ + r.prof + r.truck + r.misc) / _contrib) : null;
   $('pdf-asmp-grid').innerHTML = [
@@ -1301,7 +1305,7 @@ function printSummary() {
     { label:'Bull', mult:1.2, tag:'+20% revenue' },
   ];
   $('pdf-scenarios').innerHTML = scDefs.map(d => {
-    const nr = calc(s.days, s.dayrev * d.mult, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc);
+    const nr = calc(s.days, s.dayrev * d.mult, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc, s.ptax);
     const neg = nr.net < 0;
     return `<div class="pdf-sc-row"><span class="pdf-sc-name">${d.label} · $${Math.round(s.dayrev*d.mult).toLocaleString()}/day · ${d.tag}</span><span style="display:flex;gap:12px;align-items:baseline;"><span class="pdf-sc-net ${neg?'neg':'pos'}">${fmtP(nr.net)}</span><span class="pdf-sc-margin">${pctOf(nr.net,nr.rev)}</span></span></div>`;
   }).join('');
@@ -1487,7 +1491,7 @@ function exportSBA() {
     const factor = Math.pow(1 + GROWTH, y);
     let yi = 0, yp = 0;
     for (let m = y * 12; m < y * 12 + 12; m++) { yi += sched36[m].interest; yp += sched36[m].principal; }
-    const r = calc(s.days, s.dayrev * factor, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, yi, s.misc);
+    const r = calc(s.days, s.dayrev * factor, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, yi, s.misc, s.ptax);
     const opexExclInt = (r.opex - yi) + xFixed;
     const noi = r.gp - opexExclInt;
     const netAfterDS = noi - annualDS;
@@ -1532,6 +1536,7 @@ function exportSBA() {
     ['  Marketing fund', '1% of net sales', '[Per the FDD]'],
     ['  Bank & credit card fees', '2.75% of net sales', '[Merchant processing rate]'],
     ['  Rent + NNN', _d(s.rent) + ' per year', '[Your lease: base rent plus NNN]'],
+    ['  Property & personal property tax', _d(s.ptax) + ' per year', '[Real-estate tax if owned + equipment/personal-property tax; $0 if already in NNN]'],
     ['  Computer & software', _d(s.dues) + ' per year', '[POS, scheduling, accounting, loyalty subscriptions]'],
     ['  Utilities (bundled occupancy)', _d(s.occ) + ' per year', '[Bundled: utilities, insurance, cleaning, internet, trash, etc.]'],
     ['  Legal & professional', _d(s.prof) + ' per year', ''],
@@ -1661,6 +1666,7 @@ function exportSBA() {
       flat('  Payroll & Payroll Expenses', r.compAmt, true),
       flat('  Repairs & Maintenance', sba.repairs, true),
       flat('  Rent', r.rent, true),
+      flat('  Property & Pers. Property Tax', r.ptax, true),
       flat('  Local Advertising', sba.localAd, true),
       flat('  Insurance', sba.insurance, true),
       flat('  Legal & Professional', r.prof, true),
@@ -1866,6 +1872,7 @@ sbaRecalc();
         <tr class="sub"><td>Royalties</td><td id="pdf-p-roy">—</td></tr>
         <tr class="sub"><td>Merchant fees (2.75% of net)</td><td id="pdf-p-merch">—</td></tr>
         <tr class="sub"><td>Tenant Rent &amp; NNN</td><td id="pdf-p-rent">—</td></tr>
+        <tr class="sub"><td>Property &amp; Personal Property Tax</td><td id="pdf-p-ptax">—</td></tr>
         <tr class="sub"><td>Dues &amp; Subscriptions</td><td id="pdf-p-dues">—</td></tr>
         <tr class="sub"><td>Occupancy</td><td id="pdf-p-occ">—</td></tr>
         <tr class="sub"><td>Professional Fees</td><td id="pdf-p-prof">—</td></tr>
