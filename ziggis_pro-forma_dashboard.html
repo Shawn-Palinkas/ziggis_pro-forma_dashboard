@@ -385,7 +385,7 @@
           <span class="sb-ctrl-name">Avg daily revenue</span>
           <input class="sb-ctrl-val sb-val-input" id="lbl-dayrev" type="text" value="$0">
         </div>
-        <input type="range" id="sl-dayrev" min="0" max="10000" step="50" value="0">
+        <input type="range" id="sl-dayrev" min="0" max="10000" step="1" value="0">
       </div>
 
       <div class="sb-control">
@@ -925,8 +925,9 @@ function bindSlider(slId, inId, toDisplay, parse, min, max, extraClass) {
     const raw = parse(inp.value);
     const clamped = Math.min(max, Math.max(min, isNaN(raw) ? +sl.value : raw));
     sl.value = clamped;
-    inp.value = toDisplay(clamped);
-    if (extraClass) { inp.className = 'sb-ctrl-val sb-val-input ' + extraClass(clamped); }
+    const snapped = +sl.value;   // range snaps to its step — show the value actually used
+    inp.value = toDisplay(snapped);
+    if (extraClass) { inp.className = 'sb-ctrl-val sb-val-input ' + extraClass(snapped); }
     update();
   }
   inp.addEventListener('blur', apply);
