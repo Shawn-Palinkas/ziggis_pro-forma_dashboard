@@ -528,7 +528,10 @@
             <tr class="sub"><td>Advertising &amp; marketing (1% of net)</td><td id="p-ad">—</td></tr>
             <tr class="sub"><td>Royalties</td><td id="p-roy">—</td></tr>
             <tr class="sub"><td>Merchant fees (2.75% of net)</td><td id="p-merch">—</td></tr>
-            <tr class="sub"><td>Tenant Rent &amp; NNN <span class="info-dot">i<span class="tip"><b>Annual lease cost.</b> Base rent plus NNN (triple net): property taxes, building insurance, and common area maintenance. Enter your full yearly amount; leave $0 if you own the property.</span></span> <span class="edit-hint">✎</span></td><td><input class="pnl-input" id="in-rent" type="text" value="$0" oninput="liveComma(this)" onblur="fmtInput(this)" onfocus="stripInput(this)" onchange="update()"></td></tr>
+            <tr class="sub"><td>Base Rent <span class="info-dot">i<span class="tip"><b>Base rent only — the negotiable part of the lease.</b> <b>Fixed $</b>: annual base rent; leave $0 if you own the property. <b>% of Sales</b>: percentage rent — base rent is calculated as your entered percentage of the selected sales basis, plus any fixed additional rent, per your lease or LOI. Enter NNN separately on the line below.</span></span>&nbsp; <button type="button" class="chart-tab-btn active" id="rent-mode-fixed" onclick="setRentMode('fixed')">Fixed $</button> <button type="button" class="chart-tab-btn" id="rent-mode-pct" onclick="setRentMode('pct')">% of Sales</button></td><td><input class="pnl-input" id="in-rent" type="text" value="$0" oninput="liveComma(this)" onblur="fmtInput(this)" onfocus="stripInput(this)" onchange="update()"><span id="p-rent-calc" style="display:none;">—</span></td></tr>
+            <tr class="sub" id="row-rentpct" style="display:none;"><td style="padding-left:34px;">Rent % <span class="info-dot">i<span class="tip"><b>Percentage rent.</b> Rent equals this percentage of the selected sales basis, payable monthly. <b>Gross</b>: all sales before discounts — the larger base, favors the landlord. <b>Net</b>: gross sales less discounts and comps — the smaller base, favors the tenant. Because rent moves with revenue, the Bear/Base/Bull scenarios and multi-year projections flex rent automatically.</span></span>&nbsp; <button type="button" class="chart-tab-btn active" id="rent-basis-gross" onclick="setRentBasis('gross')">Gross sales</button> <button type="button" class="chart-tab-btn" id="rent-basis-net" onclick="setRentBasis('net')">Net sales</button> <span class="edit-hint">✎</span></td><td><input class="pnl-input" id="in-rentpct" type="text" value="10.0%" onblur="fmtPctInput(this)" onfocus="stripInput(this)" onchange="update()"></td></tr>
+            <tr class="sub" id="row-rentaddl" style="display:none;"><td style="padding-left:34px;">Additional rent (fixed $/yr) <span class="info-dot">i<span class="tip"><b>Fixed additional rent.</b> Any flat amount owed on top of percentage rent. Enter the annual total — e.g. $5,000 per quarter is $20,000 per year.</span></span> <span class="edit-hint">✎</span></td><td><input class="pnl-input" id="in-rentaddl" type="text" value="$20,000" oninput="liveComma(this)" onblur="fmtInput(this)" onfocus="stripInput(this)" onchange="update()"></td></tr>
+            <tr class="sub"><td>NNN (taxes, insurance, CAM) <span class="info-dot">i<span class="tip"><b>Triple net charges — typically fixed pass-throughs, not negotiable.</b> Property taxes, building insurance, and common area maintenance billed by the landlord. Enter the annual total; leave $0 if your lease has no NNN (e.g. a license or percentage-only deal) or if you own the property.</span></span> <span class="edit-hint">✎</span></td><td><input class="pnl-input" id="in-nnn" type="text" value="$0" oninput="liveComma(this)" onblur="fmtInput(this)" onfocus="stripInput(this)" onchange="update()"></td></tr>
             <tr class="sub"><td>Property &amp; Personal Property Tax <span class="info-dot">i<span class="tip"><b>Annual property tax.</b> Real-estate property tax (if you own the building) plus any personal-property / business-equipment tax your county levies. Leave $0 if you lease and it is already included in your NNN above, to avoid double-counting.</span></span> <span class="edit-hint">✎</span></td><td><input class="pnl-input" id="in-ptax" type="text" value="$0" oninput="liveComma(this)" onblur="fmtInput(this)" onfocus="stripInput(this)" onchange="update()"></td></tr>
             <tr class="sub"><td>Dues &amp; Subscriptions <span class="info-dot">i<span class="tip"><b>Includes, for example:</b> POS &amp; back-office software, scheduling, loyalty/gift platform, accounting software, music — e.g. Revel POS, QuickBooks Online, When I Work, Paytronix, music &amp; subscriptions.</span></span> <span class="edit-hint">✎</span></td><td><input class="pnl-input" id="in-dues" type="text" value="$10,570" oninput="liveComma(this)" onblur="fmtInput(this)" onfocus="stripInput(this)" onchange="update()"></td></tr>
             <tr class="sub"><td>Occupancy <span class="info-dot">i<span class="tip"><b>Includes, for example:</b> Utilities (electric/gas/water), liability insurance, cleaning, dish &amp; ice machine rental, internet, telephone, pest control, security/ADT, trash, linens, landscape/snow removal.</span></span> <span class="edit-hint">✎</span></td><td><input class="pnl-input" id="in-occ" type="text" value="$33,520" oninput="liveComma(this)" onblur="fmtInput(this)" onfocus="stripInput(this)" onchange="update()"></td></tr>
@@ -751,6 +754,31 @@ const fmtP = v => '$' + Math.round(v).toLocaleString();
 const pctOf = (n, d) => d ? (n / d * 100).toFixed(1) + '%' : '—';
 
 let loanStruct = '7a';
+let rentMode = 'fixed';   // 'fixed' = flat annual rent & NNN | 'pct' = % of gross sales + fixed additional rent
+
+function setRentMode(m, skipUpdate) {
+  rentMode = m;
+  $('rent-mode-fixed').classList.toggle('active', m === 'fixed');
+  $('rent-mode-pct').classList.toggle('active', m === 'pct');
+  $('row-rentpct').style.display = m === 'pct' ? '' : 'none';
+  $('row-rentaddl').style.display = m === 'pct' ? '' : 'none';
+  $('in-rent').style.display = m === 'fixed' ? '' : 'none';
+  $('p-rent-calc').style.display = m === 'pct' ? '' : 'none';
+  if (!skipUpdate) update();
+}
+let rentBasis = 'gross';  // 'gross' = % of gross sales (per LOI as written) | 'net' = % of net sales (tenant-favorable)
+
+function setRentBasis(b, skipUpdate) {
+  rentBasis = b;
+  $('rent-basis-gross').classList.toggle('active', b === 'gross');
+  $('rent-basis-net').classList.toggle('active', b === 'net');
+  if (!skipUpdate) update();
+}
+function fmtPctInput(el) {
+  const v = Math.min(100, Math.abs(parseFloat(el.value.replace(/[^0-9.]/g, '')) || 0));
+  el.value = v.toFixed(1) + '%';
+  update();
+}
 if (window.Chart) { Chart.defaults.font.family = "'Inter', sans-serif"; }
 let charts = {};
 
@@ -794,10 +822,18 @@ function calc(days, dayrev, disc, cogs, laborPct, roy, royOnSales, rent, dues, o
   const compAmt = rev * laborPct / 100;            // labor on GROSS sales
   const adAmt = netSales * 0.01;                   // advertising & marketing on NET sales
   const merch = netSales * 0.0275;                 // merchant fees on NET sales
-  rent = rent ?? 0; dues = dues ?? 0; occ = occ ?? 0; prof = prof ?? 0; truck = truck ?? 0; misc = misc ?? 0; ptax = ptax ?? 0;
-  const opex = compAmt + adAmt + royAmt + merch + rent + dues + occ + prof + truck + misc + ptax;
+  let rentVar = 0, rentFix = rent ?? 0;
+  if (typeof rentMode !== 'undefined' && rentMode === 'pct') {
+    const rentBase = (typeof rentBasis !== 'undefined' && rentBasis === 'net') ? netSales : rev;
+    rentVar = rentBase * (parseInput('in-rentpct') / 100);   // percentage rent on selected basis
+    rentFix = parseInput('in-rentaddl');                // fixed additional rent
+  }
+  rent = rentVar + rentFix;
+  const nnn = parseInput('in-nnn');   // NNN stands alone — fixed pass-through, independent of rent mode
+  dues = dues ?? 0; occ = occ ?? 0; prof = prof ?? 0; truck = truck ?? 0; misc = misc ?? 0; ptax = ptax ?? 0;
+  const opex = compAmt + adAmt + royAmt + merch + rent + nnn + dues + occ + prof + truck + misc + ptax;
   const net = gp - opex;
-  return { rev, discAmt, netSales, cogsAmt, gp, royAmt, compAmt, adAmt, merch, rent, dues, occ, prof, truck, misc, ptax, opex, net, laborPct };
+  return { rev, discAmt, netSales, cogsAmt, gp, royAmt, compAmt, adAmt, merch, rent, rentVar, rentFix, nnn, dues, occ, prof, truck, misc, ptax, opex, net, laborPct };
 }
 
 function getS() {
@@ -976,8 +1012,8 @@ function renderHealthCheck(s, r) {
   }
 
   // 3. Break-even achievability
-  const contrib  = s.days ? (r.gp - r.royAmt - r.merch - r.compAmt - r.adAmt) / s.days : 0;
-  const fixed    = r.rent + r.dues + r.occ + r.prof + r.truck + r.misc;
+  const contrib  = s.days ? (r.gp - r.royAmt - r.merch - r.compAmt - r.adAmt - r.rentVar) / s.days : 0;
+  const fixed    = r.rentFix + r.nnn + r.dues + r.occ + r.prof + r.truck + r.misc;
   const be       = contrib > 0 ? Math.ceil(fixed / contrib) : null;
   if (!be) {
     checks.push({ cls:'flag', label:'Break-even — cannot calculate', val:'—', note:'Daily contribution margin is zero or negative. Check that revenue and cost inputs are filled in.' });
@@ -1055,8 +1091,8 @@ function update() {
   ne.className = 'kpi-val ' + (r.net >= 0 ? 'pos' : 'neg');
   $('kpi-net-pct').textContent = pctOf(r.net, r.rev) + ' net margin';
   // Break-even days
-  const dailyContrib = s.days ? (r.gp - r.royAmt - r.merch - r.compAmt - r.adAmt) / s.days : 0;
-  const fixedAnnual  = r.rent + r.dues + r.occ + r.prof + r.truck + r.misc;
+  const dailyContrib = s.days ? (r.gp - r.royAmt - r.merch - r.compAmt - r.adAmt - r.rentVar) / s.days : 0;
+  const fixedAnnual  = r.rentFix + r.nnn + r.dues + r.occ + r.prof + r.truck + r.misc;
   const breakeven    = dailyContrib > 0 ? Math.ceil(fixedAnnual / dailyContrib) : null;
   const be = $('kpi-breakeven');
   if (s.dayrev === 0) {
@@ -1081,14 +1117,15 @@ function update() {
     $('kpi-breakeven-sub').textContent = breakeven + ' days needed vs. ' + s.days + ' planned';
   }
 
-  // Monthly debt service = monthly loan payment (principal + interest) + monthly Tenant Rent & NNN
-  const monthlyDS = (s.loanPay + s.rent) / 12;
+  // Monthly debt service = monthly loan payment (principal + interest) + monthly base rent + NNN
+  const monthlyDS = (s.loanPay + r.rent + r.nnn) / 12;
   $('kpi-ds').textContent = fmtP(monthlyDS) + '/mo';
   $('kpi-ds-sub').textContent = r.rev > 0
-    ? pctOf(s.loanPay + s.rent, r.rev) + ' of monthly sales'
+    ? pctOf(s.loanPay + r.rent + r.nnn, r.rev) + ' of monthly sales'
     : '— of monthly sales';
 
   // P&L
+  if (rentMode === 'pct') { $('p-rent-calc').textContent = fmtD(-r.rent); }
   $('p-rev').textContent = fmtP(r.rev);
   $('p-disc').textContent = fmtD(-r.discAmt);
   $('p-net-sales').textContent = fmtP(r.netSales);
@@ -1134,12 +1171,12 @@ function redraw(tab) {
           plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + c.label + ': ' + fmtP(c.raw) + ' (' + pctOf(c.raw, r.rev) + ')' } } } }
       });
     }
-    const od = [r.compAmt, r.adAmt, r.royAmt, r.merch, r.rent, r.ptax, r.truck, r.occ, r.dues, r.prof, r.misc];
+    const od = [r.compAmt, r.adAmt, r.royAmt, r.merch, r.rent, r.nnn, r.ptax, r.truck, r.occ, r.dues, r.prof, r.misc];
     if (charts.opex) { charts.opex.data.datasets[0].data = od; charts.opex.update('none'); }
     else {
       charts.opex = new Chart($('ch-opex'), {
         type: 'bar',
-        data: { labels: ['Labor','Advertising','Royalties','Merchant fees','Rent & NNN','Property tax','Loan interest','Occupancy','Dues & subs','Professional','Misc.'], datasets: [{ data: od, backgroundColor: '#e4f2f8', borderColor: '#72B1CB', borderWidth: 1, borderRadius: 3 }] },
+        data: { labels: ['Labor','Advertising','Royalties','Merchant fees','Base Rent','NNN','Property tax','Loan interest','Occupancy','Dues & subs','Professional','Misc.'], datasets: [{ data: od, backgroundColor: '#e4f2f8', borderColor: '#72B1CB', borderWidth: 1, borderRadius: 3 }] },
         options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false,
           plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + fmtP(c.raw) } } },
           scales: { x: { grid: { color: '#f0ebe3' }, ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'K', font: { size: 10 } } }, y: { grid: { display: false }, ticks: { font: { size: 10 } } } } }
@@ -1150,7 +1187,7 @@ function redraw(tab) {
   if (tab === 'waterfall') {
     const c2 = r.gp, c3 = c2 - r.compAmt, cAd = c3 - r.adAmt, c4 = cAd - r.royAmt, c5 = c4 - r.merch, c6 = c5 - r.truck;
     const wfBase = [0, 0, 0, c2, c3, cAd, c4, c5, c6, 0];
-    const wfBar  = [r.rev, r.netSales, r.gp, -r.compAmt, -r.adAmt, -r.royAmt, -r.merch, -r.truck, -(r.rent+r.dues+r.occ+r.prof+r.misc+r.ptax), r.net];
+    const wfBar  = [r.rev, r.netSales, r.gp, -r.compAmt, -r.adAmt, -r.royAmt, -r.merch, -r.truck, -(r.rent+r.nnn+r.dues+r.occ+r.prof+r.misc+r.ptax), r.net];
     const isTot  = [true, true, true, false, false, false, false, false, false, true];
     const bgs    = wfBar.map((v,i) => isTot[i] ? '#CFA571' : (v>=0 ? '#CFA571' : '#f4a39e'));
     const bords  = wfBar.map((v,i) => isTot[i] ? '#a07840' : (v>=0 ? '#a07840' : '#c0392b'));
@@ -1221,6 +1258,11 @@ function resetDefaults() {
   $('lbl-labor').value  = '0%';
   $('lbl-roy').value    = '6.0%';
   $('in-rent').value = '$0';
+  $('in-rentpct').value = '10.0%';
+  $('in-rentaddl').value = '$20,000';
+  $('in-nnn').value = '$0';
+  setRentMode('fixed', true);
+  setRentBasis('gross', true);
   $('in-ptax').value = '$0';
   $('in-dues').value = '$10,570';
   $('in-occ').value  = '$33,520';
@@ -1271,6 +1313,7 @@ function printSummary() {
   $('pdf-p-roy').textContent  = fmtD(-r.royAmt);
   $('pdf-p-merch').textContent = fmtD(-r.merch);
   $('pdf-p-rent').textContent = fmtD(-r.rent);
+  $('pdf-p-nnn').textContent = fmtD(-r.nnn);
   $('pdf-p-ptax').textContent = fmtD(-r.ptax);
   $('pdf-p-dues').textContent = fmtD(-r.dues);
   $('pdf-p-occ').textContent  = fmtD(-r.occ);
@@ -1285,8 +1328,8 @@ function printSummary() {
 
   // Key Assumptions — clean key/value rows, no jargon
   const bull = calc(s.days, s.dayrev * 1.2, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc, s.ptax);
-  const _contrib  = s.days ? (r.gp - r.royAmt - r.merch - r.compAmt - r.adAmt) / s.days : 0;
-  const be        = _contrib > 0 ? Math.ceil((r.rent + r.dues + r.occ + r.prof + r.truck + r.misc) / _contrib) : null;
+  const _contrib  = s.days ? (r.gp - r.royAmt - r.merch - r.compAmt - r.adAmt - r.rentVar) / s.days : 0;
+  const be        = _contrib > 0 ? Math.ceil((r.rentFix + r.nnn + r.dues + r.occ + r.prof + r.truck + r.misc) / _contrib) : null;
   $('pdf-asmp-grid').innerHTML = [
     { label: 'Operating days',   val: '364 days / year (fixed)' },
     { label: 'Daily revenue',    val: '$' + Math.round(s.dayrev).toLocaleString() },
@@ -1294,6 +1337,8 @@ function printSummary() {
     { label: 'COGS %',           val: s.cogs + '% of gross' },
     { label: 'Labor % (gross)',  val: r.laborPct.toFixed(1) + '%' },
     { label: 'Royalty rate',     val: s.roy.toFixed(1) + '% on net sales' },
+    { label: 'Base rent',        val: rentMode === 'pct' ? parseInput('in-rentpct').toFixed(1) + '% of ' + (rentBasis === 'net' ? 'net' : 'gross') + ' + ' + fmtP(parseInput('in-rentaddl')) + '/yr' : fmtP(r.rent) + '/yr' },
+    { label: 'NNN',              val: fmtP(r.nnn) + '/yr' },
     { label: 'Monthly loan pmt', val: '$' + Math.round(s.loanPay/12).toLocaleString() + '/mo' },
     { label: 'Break-even day',   val: be ? 'Day ' + be : '—' },
     { label: 'Bull case (+20%)', val: fmtP(bull.net) + ' net income' },
@@ -1536,7 +1581,8 @@ function exportSBA() {
     ['  Royalty fee', s.roy + '% of net sales', '[Per the Franchise Disclosure Document]'],
     ['  Marketing fund', '1% of net sales', '[Per the FDD]'],
     ['  Bank & credit card fees', '2.75% of net sales', '[Merchant processing rate]'],
-    ['  Rent + NNN', _d(s.rent) + ' per year', '[Your lease: base rent plus NNN]'],
+    ['  Base rent', rentMode === 'pct' ? parseInput('in-rentpct').toFixed(1) + '% of ' + (rentBasis === 'net' ? 'net' : 'gross') + ' sales + ' + _d(parseInput('in-rentaddl')) + ' per year additional  (' + _d(r1.rent) + ' Year 1)' : _d(s.rent) + ' per year', rentMode === 'pct' ? '[Percentage rent per your lease/LOI \u2014 rent scales with sales in each projected year]' : '[Your lease: negotiated base rent]'],
+    ['  NNN (taxes, insurance, CAM)', _d(r1.nnn) + ' per year', '[Triple net pass-throughs billed by the landlord]'],
     ['  Property & personal property tax', _d(s.ptax) + ' per year', '[Real-estate tax if owned + equipment/personal-property tax; $0 if already in NNN]'],
     ['  Computer & software', _d(s.dues) + ' per year', '[POS, scheduling, accounting, loyalty subscriptions]'],
     ['  Utilities (bundled occupancy)', _d(s.occ) + ' per year', '[Bundled: utilities, insurance, cleaning, internet, trash, etc.]'],
@@ -1666,7 +1712,8 @@ function exportSBA() {
       flat("  Owner's Compensation", sba.ownerComp, true),
       flat('  Payroll & Payroll Expenses', r.compAmt, true),
       flat('  Repairs & Maintenance', sba.repairs, true),
-      flat('  Rent', r.rent, true),
+      flat(rentMode === 'pct' ? '  Base Rent (' + parseInput('in-rentpct').toFixed(1) + '% of ' + (rentBasis === 'net' ? 'net' : 'gross') + ' + additional)' : '  Base Rent', r.rent, true),
+      flat('  NNN (taxes, insurance, CAM)', r.nnn, true),
       flat('  Property & Pers. Property Tax', r.ptax, true),
       flat('  Local Advertising', sba.localAd, true),
       flat('  Insurance', sba.insurance, true),
@@ -1872,7 +1919,8 @@ sbaRecalc();
         <tr class="sub"><td>Advertising &amp; marketing (1% of net)</td><td id="pdf-p-ad">—</td></tr>
         <tr class="sub"><td>Royalties</td><td id="pdf-p-roy">—</td></tr>
         <tr class="sub"><td>Merchant fees (2.75% of net)</td><td id="pdf-p-merch">—</td></tr>
-        <tr class="sub"><td>Tenant Rent &amp; NNN</td><td id="pdf-p-rent">—</td></tr>
+        <tr class="sub"><td>Base Rent</td><td id="pdf-p-rent">—</td></tr>
+        <tr class="sub"><td>NNN (taxes, insurance, CAM)</td><td id="pdf-p-nnn">—</td></tr>
         <tr class="sub"><td>Property &amp; Personal Property Tax</td><td id="pdf-p-ptax">—</td></tr>
         <tr class="sub"><td>Dues &amp; Subscriptions</td><td id="pdf-p-dues">—</td></tr>
         <tr class="sub"><td>Occupancy</td><td id="pdf-p-occ">—</td></tr>
