@@ -284,14 +284,16 @@
 
   /* ── Loan Details ── */
   .ln-struct-btn {
-    flex: 1; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
-    padding: 9px 12px; border-radius: 7px; cursor: pointer;
+    flex: 1 1 190px; min-width: 0; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
+    padding: 9px 10px; border-radius: 7px; cursor: pointer; text-align: center; line-height: 1.35;
     border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted);
     transition: all 0.15s;
   }
   .ln-struct-btn.active { background: var(--tan); border-color: var(--tan-dark); color: var(--brown); }
   .ln-struct-btn:hover:not(.active) { background: var(--border); color: var(--text); }
-  .ln-field-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  .ln-field-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  #panel-loan .card { overflow-x: hidden; }
+  #panel-loan .ln-table { table-layout: auto; }
   .ln-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 6px; }
   .ln-field { display: flex; flex-direction: column; gap: 4px; }
   .ln-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
@@ -320,6 +322,20 @@
   .ln-table .ln-total td { font-weight: 700; background: var(--blue-light); padding: 7px 8px; color: var(--blue-dark); border-bottom: none; }
   .ln-table .ln-total td:first-child { border-radius: 4px 0 0 4px; color: var(--blue-dark); }
   .ln-table .ln-total td:last-child { border-radius: 0 4px 4px 0; }
+  .ln-struct-btn.new-rules.active { background: #f4e0c8; border-color: #c98a3c; color: #7a4a12; }
+  .ln-badge {
+    display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: 0.04em;
+    text-transform: uppercase; padding: 2px 6px; border-radius: 4px; margin-left: 6px;
+    background: #c98a3c; color: #fff; vertical-align: middle;
+  }
+  .ln-badge.grey { background: var(--text-muted); }
+  .ln-callout {
+    padding: 10px 13px; border-radius: 8px; font-size: 11.5px; line-height: 1.6;
+    color: var(--text-dim); margin-bottom: 14px;
+  }
+  .ln-callout.rule { background: #fdf3e6; border: 1px solid #e0b877; }
+  .ln-callout.rule b { color: #7a4a12; }
+  .ln-callout.muted { background: var(--surface2); border: 1px solid var(--border); }
 </style>
 </head>
 <body>
@@ -583,14 +599,21 @@
           <span class="card-title">Loan Details</span>
           <span class="card-sub">Calculates the monthly bank loan payment used in your P&amp;L</span>
         </div>
-        <div style="display:flex;gap:8px;margin-bottom:16px;">
-          <button class="ln-struct-btn active" id="ln-btn-7a" onclick="setLoanStruct('7a')">SBA 7(a) / Conventional</button>
-          <button class="ln-struct-btn" id="ln-btn-504" onclick="setLoanStruct('504')">SBA 504</button>
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+          <button class="ln-struct-btn active" id="ln-btn-7a" onclick="setLoanStruct('7a')">SBA 7(a) / Conventional<br><span style="font-weight:500;font-size:10px;opacity:0.75;">Current structure &middot; thru Sep 30, 2026</span></button>
+          <button class="ln-struct-btn new-rules" id="ln-btn-7anew" onclick="setLoanStruct('7anew')">SBA 7(a) &mdash; New Rules<br><span style="font-weight:500;font-size:10px;opacity:0.75;">Split maturity &middot; from Oct 1, 2026</span></button>
+          <button class="ln-struct-btn" id="ln-btn-504" onclick="setLoanStruct('504')">SBA 504<br><span style="font-weight:500;font-size:10px;opacity:0.75;">Unchanged</span></button>
         </div>
 
-        <div class="ln-field-row">
+        <div class="ln-field-row" id="ln-project-row">
           <span class="ln-label" style="font-size:12px;text-transform:none;font-weight:600;color:var(--text);">Project Total (build-out + equipment + fees)</span>
           <input class="ln-input big" id="ln-project" type="text" value="$0" onblur="lnFmt(this)" onfocus="lnStrip(this)" oninput="liveComma(this)">
+        </div>
+        <div id="ln-project-locked" style="display:none;margin-bottom:14px;">
+          <div class="ln-field-row" style="margin-bottom:0;">
+            <span class="ln-label" style="font-size:12px;text-transform:none;font-weight:600;color:var(--text);">Project Total (build-out + equipment + fees)<br><span style="font-weight:400;font-size:10.5px;color:var(--text-muted);">Calculated from the two cost lanes below</span></span>
+            <span id="ln-project-calc" style="font-size:18px;font-weight:700;color:var(--brown);font-variant-numeric:tabular-nums;">&mdash;</span>
+          </div>
         </div>
 
         <!-- SBA 7(a) inputs -->
@@ -602,8 +625,55 @@
           </div>
         </div>
 
+        <!-- SBA 7(a) NEW RULES inputs -->
+        <div id="ln-7anew-inputs" style="display:none;">
+          <div class="ln-callout rule">
+            <b>Effective for loans issued an SBA loan number on or after October 1, 2026.</b>
+            Under SOP 50 10 8.1, a 7(a) loan no longer carries a single 25-year term just because real estate is the majority of the project.
+            Only the real-estate portion may amortize up to 25 years; equipment, franchise fee, and working capital are capped at 10.
+            The bank can still write one note, but the payment is a blend of the two lanes.
+            <span style="display:block;margin-top:6px;">Deals that received an SBA loan number on or before <b>September 30, 2026</b> stay on the current structure &mdash; use the first tab for those.</span>
+          </div>
+          <div class="ln-field-row" style="margin-bottom:12px;">
+            <span class="ln-label" style="font-size:12px;text-transform:none;font-weight:600;color:var(--text);">Down Payment (%)<br><span style="font-weight:400;font-size:10.5px;color:var(--text-muted);">Applied proportionally across both lanes</span></span>
+            <input class="ln-input big" id="ln-7anew-down" type="text" value="10" oninput="update()">
+          </div>
+
+          <div class="ln-subtitle">Real Estate Lane &mdash; up to 25 years</div>
+          <div class="ln-grid3">
+            <div class="ln-field"><span class="ln-label">Cost ($)</span><input class="ln-input" id="ln-7anew-re-cost" type="text" value="$0" onblur="newRuleMoney(this,true)" onfocus="lnStrip(this)" oninput="newRuleMoney(this,false)"></div>
+            <div class="ln-field"><span class="ln-label">Loan Term (years)</span><input class="ln-input" id="ln-7anew-re-term" type="text" value="25" oninput="update()"></div>
+            <div class="ln-field"><span class="ln-label">Interest Rate (%)</span><input class="ln-input" id="ln-7anew-re-rate" type="text" value="9" oninput="update()"></div>
+          </div>
+          <div style="font-size:10.5px;color:var(--text-muted);margin-top:4px;">
+            Land, building shell &amp; GC, site work, and construction soft costs (architectural, civil, permits, impact fees, appraisal, environmental, title).
+            <span id="ln-7anew-re-pct" style="float:right;font-weight:600;color:var(--text-dim);"></span>
+          </div>
+
+          <div class="ln-subtitle">Non-Real-Estate Lane &mdash; capped at 10 years</div>
+          <div class="ln-grid3">
+            <div class="ln-field"><span class="ln-label">Cost ($)</span><input class="ln-input" id="ln-7anew-nonre-cost" type="text" value="$0" onblur="newRuleMoney(this,true)" onfocus="lnStrip(this)" oninput="newRuleMoney(this,false)"></div>
+            <div class="ln-field"><span class="ln-label">Loan Term (years)</span><input class="ln-input" id="ln-7anew-nonre-term" type="text" value="10" oninput="update()"></div>
+            <div class="ln-field"><span class="ln-label">Interest Rate (%)</span><input class="ln-input" id="ln-7anew-nonre-rate" type="text" value="9" oninput="update()"></div>
+          </div>
+          <div style="font-size:10.5px;color:var(--text-muted);margin-top:4px;">
+            Equipment, furniture &amp; fixtures, signage, franchise fee, opening inventory, and working capital.
+            Equipment may stretch to 15 years where the IRS asset class supports it &mdash; confirm the split with your lender.
+            <span id="ln-7anew-nonre-pct" style="float:right;font-weight:600;color:var(--text-dim);"></span>
+          </div>
+
+          <div id="ln-7anew-sum" style="margin-top:12px;padding:9px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;font-size:11.5px;color:var(--text-dim);">
+            Real estate <b id="ln-7anew-re-amt" style="color:var(--text);">&mdash;</b>
+            &nbsp;+&nbsp; non-real-estate <b id="ln-7anew-nr-amt" style="color:var(--text);">&mdash;</b>
+            &nbsp;=&nbsp; project total <b id="ln-7anew-total" style="color:var(--text);">&mdash;</b>
+          </div>
+        </div>
+
         <!-- SBA 504 inputs -->
         <div id="ln-504-inputs" style="display:none;">
+          <div class="ln-callout muted">
+            <b>Not affected by the October 1, 2026 change.</b> A 504 is already split by asset type &mdash; bank first lien and CDC debenture &mdash; so there is no blended maturity to lose. Terms below are unchanged.
+          </div>
           <div class="ln-subtitle">504 / Conventional — bank 1st lien</div>
           <div class="ln-grid3">
             <div class="ln-field"><span class="ln-label">% of Project</span><input class="ln-input" id="ln-504-conv-pct" type="text" value="50" oninput="update()"></div>
@@ -626,6 +696,16 @@
           <span class="card-sub">Standard amortization</span>
         </div>
         <table class="ln-table" id="ln-result-table"></table>
+        <div id="ln-blend-note" style="display:none;margin-top:12px;padding:11px 14px;background:#fdf3e6;border:1px solid #e0b877;border-radius:8px;font-size:11.5px;color:var(--text-dim);line-height:1.7;">
+          <b style="color:#7a4a12;">Effect of the split maturity.</b>
+          The two lanes together behave like a single loan amortized over roughly <b id="ln-blend-yrs">&mdash;</b>.
+          <span style="display:block;margin-top:6px;">
+            Old structure (entire loan at 25 yr): <b id="ln-blend-old">&mdash;</b><br>
+            New structure (25 yr / 10 yr split): <b id="ln-blend-new">&mdash;</b><br>
+            Change in debt service: <b id="ln-blend-delta" style="color:#a33;">&mdash;</b> &nbsp;(<b id="ln-blend-deltay" style="color:#a33;">&mdash;</b>)
+          </span>
+          <span style="display:block;margin-top:6px;color:var(--text-muted);">Comparison uses the real-estate lane rate for the old single-term payment. Confirm the cost split and final terms with your lender.</span>
+        </div>
       </div>
 
       <div class="kpi-row" style="grid-template-columns:repeat(2,1fr);margin-bottom:0;">
@@ -707,7 +787,7 @@
         <div class="card-header"><span class="card-title">How to generate your SBA-compliant pro-forma</span><span class="card-sub">New to this? Just follow the steps</span></div>
         <ol class="sba-steps">
           <li><b>Set your operating assumptions.</b> In the left sidebar, enter your average daily revenue, discount %, COGS %, labor %, and your fixed costs. These drive the projection.</li>
-          <li><b>Set up your loan.</b> Open the <b>Loan Details</b> tab and enter your project total, loan structure (SBA 7(a) or 504), interest rate, and term. This builds your amortization and debt service.</li>
+          <li><b>Set up your loan.</b> Open the <b>Loan Details</b> tab and enter your project total, loan structure (7(a) current, 7(a) new rules, or 504), interest rate, and term. This builds your amortization and debt service.</li>
           <li><b>Fill in the items below.</b> These are the startup costs and expenses an SBA lender expects but that aren't part of the day-to-day model: your <b>Uses of Funds</b> (from FDD Item 7), how you're funding your <b>equity injection</b>, your <b>owner's salary</b>, and a few operating costs. Leave anything that doesn't apply at $0.</li>
           <li><b>Generate the workbook.</b> Click <b>Generate SBA Excel</b> at the bottom. You'll get a five-sheet file — Sources &amp; Uses, Loan Amortization, and monthly Year 1, 2, and 3 statements — with your Debt Service Coverage Ratio and a stress test.</li>
         </ol>
@@ -872,8 +952,29 @@ function amortize(P, ratePct, years) {
   return P * r * fac / (fac - 1);
 }
 
+// Split the financed amount of a NEW-RULES 7(a) into its two maturity lanes
+function newRuleLegs() {
+  const keep = 1 - lnum('ln-7anew-down') / 100;
+  return [
+    { P: lnum('ln-7anew-re-cost')    * keep, ratePct: lnum('ln-7anew-re-rate'),    years: lnum('ln-7anew-re-term') },
+    { P: lnum('ln-7anew-nonre-cost') * keep, ratePct: lnum('ln-7anew-nonre-rate'), years: lnum('ln-7anew-nonre-term') },
+  ];
+}
+
+// Keep Project Total in sync with the two cost lanes
+function newRuleMoney(el, blur) {
+  if (blur) { const v = Math.abs(parseFloat(el.value.replace(/[^0-9.]/g,'')) || 0); el.value = '$' + Math.round(v).toLocaleString(); }
+  else { liveComma(el); }
+  const tot = lnum('ln-7anew-re-cost') + lnum('ln-7anew-nonre-cost');
+  $('ln-project').value = '$' + Math.round(tot).toLocaleString();
+  update();
+}
+
 function loanMonthly() {
   const proj = lnum('ln-project');
+  if (loanStruct === '7anew') {
+    return newRuleLegs().reduce((a, l) => a + amortize(l.P, l.ratePct, l.years), 0);
+  }
   if (loanStruct === '7a') {
     const fin = proj * (1 - lnum('ln-7a-down') / 100);
     return amortize(fin, lnum('ln-7a-rate'), lnum('ln-7a-term'));
@@ -901,6 +1002,12 @@ function loanSchedule(P, ratePct, years) {
 
 function loanYear1() {
   const proj = lnum('ln-project');
+  if (loanStruct === '7anew') {
+    return newRuleLegs()
+      .map(l => loanSchedule(l.P, l.ratePct, l.years))
+      .reduce((a, x) => ({ monthly: a.monthly + x.monthly, interest: a.interest + x.interest, principal: a.principal + x.principal }),
+              { monthly: 0, interest: 0, principal: 0 });
+  }
   if (loanStruct === '7a') {
     const fin = proj * (1 - lnum('ln-7a-down') / 100);
     return loanSchedule(fin, lnum('ln-7a-rate'), lnum('ln-7a-term'));
@@ -910,17 +1017,66 @@ function loanYear1() {
   return { monthly: a.monthly + b.monthly, interest: a.interest + b.interest, principal: a.principal + b.principal };
 }
 
-function setLoanStruct(str) { loanStruct = str; renderLoan(); update(); }
+// Effective single-loan maturity that would produce the same blended payment
+function blendedYears(P, legs, pmt) {
+  const rate = legs.reduce((a, l) => a + l.ratePct * l.P, 0) / (legs.reduce((a, l) => a + l.P, 0) || 1);
+  const r = rate / 100 / 12;
+  if (!P || !pmt || r <= 0 || pmt <= P * r) return 0;
+  const n = Math.log(pmt / (pmt - P * r)) / Math.log(1 + r);
+  return n / 12;
+}
+
+function setLoanStruct(str) {
+  loanStruct = str;
+  if (str === '7anew') {
+    const tot = lnum('ln-7anew-re-cost') + lnum('ln-7anew-nonre-cost');
+    if (tot > 0) $('ln-project').value = '$' + Math.round(tot).toLocaleString();
+  }
+  renderLoan(); update();
+}
 
 function renderLoan() {
   const proj = lnum('ln-project');
-  $('ln-7a-inputs').style.display  = loanStruct === '7a'  ? 'block' : 'none';
-  $('ln-504-inputs').style.display = loanStruct === '504' ? 'block' : 'none';
+  $('ln-7a-inputs').style.display    = loanStruct === '7a'    ? 'block' : 'none';
+  $('ln-7anew-inputs').style.display = loanStruct === '7anew' ? 'block' : 'none';
+  $('ln-504-inputs').style.display   = loanStruct === '504'   ? 'block' : 'none';
+  $('ln-project-locked').style.display = loanStruct === '7anew' ? 'block' : 'none';
+  $('ln-project-row').style.display    = loanStruct === '7anew' ? 'none'  : 'flex';
+  $('ln-project').readOnly = false;
+  $('ln-project').style.opacity = '1';
   $('ln-btn-7a').classList.toggle('active', loanStruct === '7a');
+  $('ln-btn-7anew').classList.toggle('active', loanStruct === '7anew');
   $('ln-btn-504').classList.toggle('active', loanStruct === '504');
 
   let rows = '', monthly = 0;
-  if (loanStruct === '7a') {
+  if (loanStruct === '7anew') {
+    const dP = lnum('ln-7anew-down');
+    const reCost = lnum('ln-7anew-re-cost'), nrCost = lnum('ln-7anew-nonre-cost');
+    const totCost = reCost + nrCost;
+    $('ln-7anew-total').textContent = fmtP(totCost);
+    $('ln-7anew-re-amt').textContent = fmtP(reCost);
+    $('ln-7anew-nr-amt').textContent = fmtP(nrCost);
+    $('ln-project-calc').textContent = fmtP(totCost);
+    $('ln-7anew-re-pct').textContent    = totCost ? (reCost / totCost * 100).toFixed(1) + '% of project' : '';
+    $('ln-7anew-nonre-pct').textContent = totCost ? (nrCost / totCost * 100).toFixed(1) + '% of project' : '';
+    const legs = newRuleLegs();
+    const downAmt = totCost * dP / 100;
+    const rePmt = amortize(legs[0].P, legs[0].ratePct, legs[0].years);
+    const nrPmt = amortize(legs[1].P, legs[1].ratePct, legs[1].years);
+    monthly = rePmt + nrPmt;
+    const finTot = legs[0].P + legs[1].P;
+    const blended = monthly > 0 && finTot > 0 ? blendedYears(finTot, legs, monthly) : 0;
+    rows = `<tr><td>7(a) &middot; Real estate lane</td><td>${totCost ? (reCost/totCost*100).toFixed(1) : '0.0'}%</td><td>${fmtP(legs[0].P)}</td><td>${legs[0].years} yr</td><td>${Math.round(legs[0].years*12)}</td><td>${legs[0].ratePct.toFixed(2)}%</td><td class="ln-pmt">${fmtMoney(rePmt)}/mo</td></tr>`
+         + `<tr><td>7(a) &middot; Non-real-estate lane</td><td>${totCost ? (nrCost/totCost*100).toFixed(1) : '0.0'}%</td><td>${fmtP(legs[1].P)}</td><td>${legs[1].years} yr</td><td>${Math.round(legs[1].years*12)}</td><td>${legs[1].ratePct.toFixed(2)}%</td><td class="ln-pmt">${fmtMoney(nrPmt)}/mo</td></tr>`
+         + `<tr class="ln-down"><td>Down payment (equity)</td><td>${dP}%</td><td>${fmtP(downAmt)}</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>`;
+    $('ln-blend-note').style.display = 'block';
+    $('ln-blend-yrs').textContent = blended ? blended.toFixed(1) + ' years' : '\u2014';
+    const oldPmt = amortize(finTot, legs[0].ratePct, 25);
+    $('ln-blend-old').textContent   = fmtMoney(oldPmt) + '/mo';
+    $('ln-blend-new').textContent   = fmtMoney(monthly) + '/mo';
+    $('ln-blend-delta').textContent = (monthly >= oldPmt ? '+' : '\u2212') + fmtMoney(Math.abs(monthly - oldPmt)).replace('$','$') + '/mo';
+    $('ln-blend-deltay').textContent = (monthly >= oldPmt ? '+' : '\u2212') + fmtP(Math.abs(monthly - oldPmt) * 12).replace('$','$') + '/yr';
+  } else if (loanStruct === '7a') {
     const dP = lnum('ln-7a-down'), term = lnum('ln-7a-term'), rate = lnum('ln-7a-rate');
     const fin = proj * (1 - dP/100), downAmt = proj * dP/100, n = Math.round(term*12);
     const pmt = amortize(fin, rate, term); monthly = pmt;
@@ -937,6 +1093,7 @@ function renderLoan() {
          + `<tr><td>504 / SBA · CDC (2nd)</td><td>${sP}%</td><td>${fmtP(sFin)}</td><td>${sT} yr</td><td>${Math.round(sT*12)}</td><td>${sR.toFixed(2)}%</td><td class="ln-pmt">${fmtMoney(sPmt)}/mo</td></tr>`
          + `<tr class="ln-down"><td>Down payment (equity)</td><td>${dP}%</td><td>${fmtP(downAmt)}</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
   }
+  if (loanStruct !== '7anew') $('ln-blend-note').style.display = 'none';
   rows += `<tr class="ln-total"><td>Total monthly payment</td><td></td><td></td><td></td><td></td><td></td><td class="ln-pmt">${fmtMoney(monthly)}/mo</td></tr>`;
   $('ln-result-table').innerHTML = `<thead><tr><th>Component</th><th>%</th><th>Amount Financed</th><th>Term</th><th># Pmts</th><th>Rate</th><th>Payment</th></tr></thead><tbody>${rows}</tbody>`;
   $('ln-kpi-monthly').textContent = fmtMoney(monthly) + '/mo';
@@ -1272,6 +1429,9 @@ function resetDefaults() {
   loanStruct = '7a';
   $('ln-project').value = '$0';
   $('ln-7a-down').value = '10'; $('ln-7a-term').value = '25'; $('ln-7a-rate').value = '9';
+  $('ln-7anew-down').value = '10';
+  $('ln-7anew-re-cost').value = '$0'; $('ln-7anew-re-term').value = '25'; $('ln-7anew-re-rate').value = '9';
+  $('ln-7anew-nonre-cost').value = '$0'; $('ln-7anew-nonre-term').value = '10'; $('ln-7anew-nonre-rate').value = '9';
   $('ln-504-conv-pct').value = '50'; $('ln-504-conv-term').value = '20'; $('ln-504-conv-rate').value = '7';
   $('ln-504-sba-pct').value  = '40'; $('ln-504-sba-term').value  = '25'; $('ln-504-sba-rate').value  = '5.86';
   renderLoan();
@@ -1412,6 +1572,7 @@ function _amortSchedule(P, ratePct, years, months) {
 // Loan legs from dashboard inputs
 function _loanLegs() {
   const proj = lnum('ln-project');
+  if (loanStruct === '7anew') return newRuleLegs();
   if (loanStruct === '7a') return [{ P: proj * (1 - lnum('ln-7a-down') / 100), ratePct: lnum('ln-7a-rate'), years: lnum('ln-7a-term') }];
   return [
     { P: proj * lnum('ln-504-conv-pct') / 100, ratePct: lnum('ln-504-conv-rate'), years: lnum('ln-504-conv-term') },
@@ -1433,6 +1594,7 @@ function _monthlyPay(legs, bump) { return legs.reduce((a, l) => a + amortize(l.P
 function _financed(legs) { return legs.reduce((a, l) => a + l.P, 0); }
 function _equityInjection() {
   const proj = lnum('ln-project');
+  if (loanStruct === '7anew') return (lnum('ln-7anew-re-cost') + lnum('ln-7anew-nonre-cost')) * lnum('ln-7anew-down') / 100;
   if (loanStruct === '7a') return proj * lnum('ln-7a-down') / 100;
   return proj * Math.max(0, 100 - lnum('ln-504-conv-pct') - lnum('ln-504-sba-pct')) / 100;
 }
@@ -1550,11 +1712,15 @@ function exportSBA() {
   const wb = XLSX.utils.book_new();
 
   // ---------- Sheet: Statement of Assumptions (first tab) ----------
-  const aStructLabel = loanStruct === '7a' ? 'SBA 7(a)' : 'SBA 504';
+  const aStructLabel = loanStruct === '7a' ? 'SBA 7(a)'
+                     : loanStruct === '7anew' ? 'SBA 7(a) \u2014 split maturity (SOP 50 10 8.1, eff. 10/1/2026)'
+                     : 'SBA 504';
   const r1 = yrs[0].r;
   const _d = v => '$' + Math.round(v || 0).toLocaleString();
   const aLoanTerms = loanStruct === '7a'
     ? lnum('ln-7a-rate').toFixed(2) + '% over ' + lnum('ln-7a-term') + ' years'
+    : loanStruct === '7anew'
+    ? legs.map((l, i) => (i === 0 ? 'Real estate ' : 'Non-real-estate ') + l.ratePct.toFixed(2) + '% / ' + l.years + ' yr').join('  +  ')
     : legs.map((l, i) => (i === 0 ? '1st ' : '2nd ') + l.ratePct.toFixed(2) + '% / ' + l.years + ' yr').join('  +  ');
   const assum = [
     [name + '  —  ' + loc],
@@ -1663,12 +1829,15 @@ function exportSBA() {
   // ---------- Sheet: Loan Amortization ----------
   let maxMonths;
   if (loanStruct === '7a') maxMonths = Math.round(lnum('ln-7a-term') * 12);
+  else if (loanStruct === '7anew') maxMonths = Math.round(Math.max(lnum('ln-7anew-re-term'), lnum('ln-7anew-nonre-term')) * 12);
   else maxMonths = Math.round(Math.max(lnum('ln-504-conv-term'), lnum('ln-504-sba-term')) * 12);
   maxMonths = Math.min(maxMonths || 0, 480);
   const full = _combinedSchedule(legs, maxMonths, 0);
   const amort = [
     [name + '  —  ' + loc],
-    ['Loan Amortization · ' + (loanStruct === '7a' ? 'SBA 7(a)' : 'SBA 504 (combined 1st + 2nd)')],
+    ['Loan Amortization · ' + (loanStruct === '7a' ? 'SBA 7(a)'
+        : loanStruct === '7anew' ? 'SBA 7(a) \u2014 combined real-estate (25 yr) + non-real-estate (10 yr) lanes'
+        : 'SBA 504 (combined 1st + 2nd)')],
     ['Prepared ' + today],
     [],
     ['Loan amount financed', _c(financed)],
