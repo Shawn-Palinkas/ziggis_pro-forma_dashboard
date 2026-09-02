@@ -1438,6 +1438,71 @@ function resetDefaults() {
   update();
 }
 
+// Builds the "how we got to the monthly payment" band on the printed summary
+function buildPdfLoanDetail() {
+  const legs = _loanLegs();
+  const financed = legs.reduce((a, l) => a + l.P, 0);
+  const equity   = _equityInjection();
+  const project  = financed + equity;
+  const monthly  = legs.reduce((a, l) => a + amortize(l.P, l.ratePct, l.years), 0);
+  const y1       = loanYear1();
+
+  // Uses-of-funds strip
+  const dPct = project ? (equity/project*100).toFixed(1) : '0';
+  let uses = [];
+  if (loanStruct === '7anew') {
+    uses.push({ l:'Real Estate Cost', v:fmtP(lnum('ln-7anew-re-cost')) });
+    uses.push({ l:'Equipment &amp; Other', v:fmtP(lnum('ln-7anew-nonre-cost')) });
+  } else {
+    uses.push({ l:'Total Project Cost', v:fmtP(project) });
+    uses.push({ l:'&nbsp;', v:'&nbsp;' });
+  }
+  uses.push({ l:'Down Payment (' + dPct + '%)', v:fmtP(equity) });
+  uses.push({ l:'Amount Financed', v:fmtP(financed) });
+  $('pdf-loan-uses').innerHTML = uses.map(u =>
+    `<div class="pdf-loan-use"><div class="pdf-loan-use-lbl">${u.l}</div><div class="pdf-loan-use-val">${u.v}</div></div>`).join('');
+
+  // Component rows
+  let names;
+  if (loanStruct === '7anew') names = ['Real estate', 'Equipment &amp; other'];
+  else if (loanStruct === '504') names = ['504 Conventional (1st)', '504 SBA \u00b7 CDC (2nd)'];
+  else names = ['SBA 7(a) / Conventional'];
+
+  let rows = legs.map((l, i) => {
+    const pmt = amortize(l.P, l.ratePct, l.years);
+    return `<tr><td>${names[i] || 'Loan'}</td><td>${fmtP(l.P)}</td><td>${l.years} yr</td><td>${(l.ratePct||0).toFixed(2)}%</td><td>${fmtMoney(pmt)}</td></tr>`;
+  }).join('');
+  rows += `<tr class="tot"><td>Total monthly</td><td></td><td></td><td></td><td>${fmtMoney(monthly)}</td></tr>`;
+  $('pdf-loan-tbl').innerHTML =
+    `<thead><tr><th style="width:33%;">Component</th><th style="width:22%;">Financed</th><th style="width:14%;">Term</th><th style="width:13%;">Rate</th><th style="width:23%;">Payment</th></tr></thead><tbody>${rows}</tbody>`;
+
+  // Footnote
+  let foot = `Annual debt service <b>${fmtP(monthly*12)}</b> &middot; Year 1 = <b>${fmtP(y1.interest)}</b> interest (deducted above) + <b>${fmtP(y1.principal)}</b> principal.`;
+  if (legs.length > 1) {
+    const by = blendedYears(financed, legs, monthly);
+    if (by) foot += ` Blended term \u2248 <b>${by.toFixed(1)} yr</b>.`;
+  }
+  $('pdf-loan-foot').innerHTML = foot;
+
+  // New-rules callout
+  const rule = $('pdf-loan-rule');
+  if (loanStruct === '7anew') {
+    const reRate = legs[0].ratePct || 0;
+    const oldPmt = amortize(financed, reRate, 25);
+    rule.style.display = 'block';
+    rule.innerHTML = `<b>SBA 7(a) split maturity &mdash; SOP 50 10 8.1, effective for loans issued an SBA loan number on or after Oct 1, 2026.</b>
+      Only the real-estate portion may amortize to 25 years; equipment, fees and working capital cap at 10.
+      Prior structure: full ${fmtP(financed)} over 25 yr at ${fmtMoney(oldPmt)}/mo &mdash; a difference of <b>${fmtMoney(Math.abs(monthly-oldPmt))}/mo</b>.
+      Terms are planning estimates; final terms set by the lender.`;
+  } else if (loanStruct === '504') {
+    rule.style.display = 'block';
+    rule.innerHTML = `SBA 504 &mdash; bank first lien plus CDC debenture, each amortized on its own term. Terms are planning estimates; final terms set by the lender.`;
+  } else {
+    rule.style.display = 'block';
+    rule.innerHTML = `SBA 7(a) / conventional under the rules in effect through Sep 30, 2026. Terms are planning estimates; final terms set by the lender.`;
+  }
+}
+
 function printSummary() {
   const s = getS();
   const r = calc(s.days, s.dayrev, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc, s.ptax);
@@ -1487,7 +1552,6 @@ function printSummary() {
   const pcfEl = $('pdf-p-ncf'); pcfEl.textContent = fmtP(pncf); pcfEl.className = pncf < 0 ? 'neg' : '';
 
   // Key Assumptions — clean key/value rows, no jargon
-  const bull = calc(s.days, s.dayrev * 1.2, s.disc, s.cogs, s.laborPct, s.roy, s.royOnSales, s.rent, s.dues, s.occ, s.prof, s.truck, s.misc, s.ptax);
   const _contrib  = s.days ? (r.gp - r.royAmt - r.merch - r.compAmt - r.adAmt - r.rentVar) / s.days : 0;
   const be        = _contrib > 0 ? Math.ceil((r.rentFix + r.nnn + r.dues + r.occ + r.prof + r.truck + r.misc) / _contrib) : null;
   $('pdf-asmp-grid').innerHTML = [
@@ -1501,7 +1565,6 @@ function printSummary() {
     { label: 'NNN',              val: fmtP(r.nnn) + '/yr' },
     { label: 'Monthly loan pmt', val: '$' + Math.round(s.loanPay/12).toLocaleString() + '/mo' },
     { label: 'Break-even day',   val: be ? 'Day ' + be : '—' },
-    { label: 'Bull case (+20%)', val: fmtP(bull.net) + ' net income' },
   ].map(a => `<div class="pdf-kv-row"><span class="pdf-kv-label">${a.label}</span><span class="pdf-kv-val">${a.val}</span></div>`).join('');
 
   // Scenarios
@@ -1516,35 +1579,8 @@ function printSummary() {
     return `<div class="pdf-sc-row"><span class="pdf-sc-name">${d.label} · $${Math.round(s.dayrev*d.mult).toLocaleString()}/day · ${d.tag}</span><span style="display:flex;gap:12px;align-items:baseline;"><span class="pdf-sc-net ${neg?'neg':'pos'}">${fmtP(nr.net)}</span><span class="pdf-sc-margin">${pctOf(nr.net,nr.rev)}</span></span></div>`;
   }).join('');
 
-  // Health check
-  const checks = [];
-  if (s.cogs === 0) checks.push({ ok:false, label:'COGS % not set', val:'0%' });
-  else if (s.cogs > 40) checks.push({ ok:false, label:'COGS % above typical range', val:s.cogs+'%' });
-  else checks.push({ ok:true, label:'COGS % in range', val:s.cogs+'%' });
-
-  if (r.laborPct > 25) checks.push({ ok:false, label:'Labor % above 15–25% target', val:r.laborPct.toFixed(1)+'%' });
-  else if (r.laborPct === 0) checks.push({ ok:false, label:'Labor % not set', val:'0%' });
-  else checks.push({ ok:true, label:'Labor % on target', val:r.laborPct.toFixed(1)+'%' });
-
-  if (!be) checks.push({ ok:false, label:'Break-even cannot be calculated', val:'—' });
-  else if (be > s.days) checks.push({ ok:false, label:'Break-even exceeds operating days', val:be+' days needed' });
-  else checks.push({ ok:true, label:'Break-even achievable', val:'Day '+be });
-
-  const occPctPdf = r.rev > 0 ? (s.occ / r.rev * 100) : 0;
-  if (r.rev === 0) checks.push({ ok:false, label:'Occupancy % needs revenue', val:'—' });
-  else if (occPctPdf > 12) checks.push({ ok:false, label:'Occupancy % high for site', val:occPctPdf.toFixed(1)+'%' });
-  else checks.push({ ok:true, label:'Occupancy % in range', val:occPctPdf.toFixed(1)+'%' });
-
-  if (r.net < 0) checks.push({ ok:false, label:'Model is currently unprofitable', val:pctOf(r.net,r.rev) });
-  else if (r.net/r.rev < 0.10) checks.push({ ok:false, label:'Net margin below 10%', val:pctOf(r.net,r.rev) });
-  else checks.push({ ok:true, label:'Net margin healthy', val:pctOf(r.net,r.rev) });
-
-  $('pdf-health').innerHTML = checks.map(ch =>
-    `<div class="pdf-hc-row">
-      <span class="pdf-hc-icon">${ch.ok ? '✓' : '⚠'}</span>
-      <span class="pdf-hc-label">${ch.label}</span>
-      <span class="pdf-hc-val ${ch.ok?'ok':'flag'}">${ch.val}</span>
-    </div>`).join('');
+  // ---- Loan Detail band ----
+  buildPdfLoanDetail();
 
   $('pdf-summary').style.display = 'block';
   window.print();
@@ -1934,32 +1970,35 @@ sbaRecalc();
 
 <style>
 @media print {
+  @page { size: letter portrait; margin: 0.3in; }
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  html, body { margin: 0 !important; padding: 0 !important; }
   body > *:not(#pdf-summary) { display: none !important; }
-  #pdf-summary { display: block !important; }
+  #pdf-summary { display: block !important; padding: 0 !important; max-width: none !important; }
+  #pdf-summary .pdf-loan, #pdf-summary .pdf-disclaimer, #pdf-summary .pdf-footer { page-break-inside: avoid; break-inside: avoid; }
 }
 #pdf-summary {
   display: none;
   font-family: 'Inter', sans-serif;
   font-size: 13px;
   color: #1e1410;
-  padding: 36px 44px;
+  padding: 22px 34px 14px;
   max-width: 780px;
   margin: 0 auto;
 }
 #pdf-summary .pdf-header {
   display: flex; justify-content: space-between; align-items: flex-start;
-  border-bottom: 3px solid #CFA571; padding-bottom: 14px; margin-bottom: 22px;
+  border-bottom: 3px solid #CFA571; padding-bottom: 10px; margin-bottom: 14px;
 }
 #pdf-summary .pdf-logo { font-family: 'Raleway', sans-serif; font-size: 22px; font-weight: 800; color: #441D1F; }
 #pdf-summary .pdf-logo span { color: #CFA571; }
 #pdf-summary .pdf-meta { text-align: right; font-size: 11px; color: #7a6a5a; line-height: 1.7; }
 #pdf-summary .pdf-meta strong { color: #1e1410; font-weight: 600; }
 #pdf-summary .pdf-kpis {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 22px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; margin-bottom: 14px;
 }
 #pdf-summary .pdf-kpi {
-  background: #f5ead8; border-radius: 8px; padding: 12px 14px;
+  background: #f5ead8; border-radius: 8px; padding: 9px 12px;
   border-left: 3px solid #CFA571;
 }
 #pdf-summary .pdf-kpi.blue { background: #e4f2f8; border-left-color: #72B1CB; }
@@ -1968,14 +2007,14 @@ sbaRecalc();
 #pdf-summary .pdf-kpi-sub { font-size: 10px; color: #7a6a5a; margin-top: 2px; }
 #pdf-summary .pdf-kpi-val.pos { color: #2a7a4b; }
 #pdf-summary .pdf-kpi-val.neg { color: #c0392b; }
-#pdf-summary .pdf-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+#pdf-summary .pdf-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 8px; }
 #pdf-summary .pdf-section-title {
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
-  color: #441D1F; margin-bottom: 10px; padding-bottom: 5px;
+  color: #441D1F; margin-bottom: 7px; padding-bottom: 4px;
   border-bottom: 1px solid #e2d9ce;
 }
 #pdf-summary table { width: 100%; border-collapse: collapse; font-size: 12px; }
-#pdf-summary table td { padding: 4px 0; border-bottom: 1px solid #f0ebe3; color: #4a3a2a; }
+#pdf-summary table td { padding: 2.5px 0; border-bottom: 1px solid #f0ebe3; color: #4a3a2a; }
 #pdf-summary table td:last-child { text-align: right; font-variant-numeric: tabular-nums; color: #1e1410; }
 #pdf-summary table .sub td { padding-left: 14px; font-size: 11px; color: #7a6a5a; }
 #pdf-summary table .sub td:last-child { color: #7a6a5a; }
@@ -1984,7 +2023,7 @@ sbaRecalc();
 #pdf-summary table .spacer td { border: none; height: 4px; }
 #pdf-summary .pdf-assumptions { margin-bottom: 18px; }
 #pdf-summary .pdf-asmp-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-#pdf-summary .pdf-kv-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid #f0ebe3; font-size: 11.5px; }
+#pdf-summary .pdf-kv-row { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid #f0ebe3; font-size: 11.5px; }
 #pdf-summary .pdf-kv-row:last-child { border: none; }
 #pdf-summary .pdf-kv-label { color: #7a6a5a; }
 #pdf-summary .pdf-kv-val { font-weight: 600; color: #1e1410; }
@@ -2004,16 +2043,34 @@ sbaRecalc();
 #pdf-summary .pdf-asmp-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #7a6a5a; margin-bottom: 3px; }
 #pdf-summary .pdf-asmp-val { font-size: 15px; font-weight: 700; font-family: 'Raleway', sans-serif; color: #1e1410; }
 #pdf-summary .pdf-scenarios { margin-bottom: 18px; }
-#pdf-summary .pdf-sc-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #f0ebe3; font-size: 12px; }
+#pdf-summary .pdf-sc-row { display: flex; justify-content: space-between; align-items: center; padding: 3.5px 0; border-bottom: 1px solid #f0ebe3; font-size: 12px; }
 #pdf-summary .pdf-sc-row:last-child { border: none; }
 #pdf-summary .pdf-sc-name { color: #4a3a2a; }
 #pdf-summary .pdf-sc-net { font-weight: 600; font-family: 'Raleway', sans-serif; }
 #pdf-summary .pdf-sc-net.pos { color: #2a7a4b; }
 #pdf-summary .pdf-sc-net.neg { color: #c0392b; }
 #pdf-summary .pdf-sc-margin { font-size: 11px; color: #7a6a5a; }
+#pdf-summary .pdf-loan { page-break-inside: avoid; break-inside: avoid; }
+#pdf-summary .pdf-loan-uses { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 8px; }
+#pdf-summary .pdf-loan-use { padding: 5px 8px; background: #f7f4f0; border-left: 2px solid #e2d9ce; border-radius: 0 4px 4px 0; }
+#pdf-summary .pdf-loan-use:last-child { border-left-color: #CFA571; background: #fdf3e6; }
+#pdf-summary .pdf-loan-use-lbl { font-size: 7.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #7a6a5a; }
+#pdf-summary .pdf-loan-use-val { font-size: 12px; font-weight: 700; font-family: 'Raleway', sans-serif; color: #1e1410; }
+#pdf-summary table.pdf-loan-tbl { width: 100%; border-collapse: collapse; font-size: 10px; table-layout: fixed; }
+#pdf-summary table.pdf-loan-tbl th {
+  text-align: right; font-size: 7.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em;
+  color: #7a6a5a; padding: 3px 3px; border-bottom: 1px solid #e2d9ce;
+}
+#pdf-summary table.pdf-loan-tbl th:first-child { text-align: left; }
+#pdf-summary table.pdf-loan-tbl td { text-align: right; padding: 3px 3px; border-bottom: 1px solid #f0ebe3; color: #4a3a2a; font-variant-numeric: tabular-nums; }
+#pdf-summary table.pdf-loan-tbl td:first-child { text-align: left; color: #1e1410; font-weight: 500; }
+#pdf-summary table.pdf-loan-tbl tr.tot td { font-weight: 700; background: #eef4f8; color: #1d5f82; border-bottom: none; }
+#pdf-summary .pdf-loan-foot { font-size: 9px; color: #7a6a5a; margin-top: 5px; line-height: 1.45; }
+#pdf-summary .pdf-loan-foot b { color: #4a3a2a; }
+#pdf-summary .pdf-loan-rule { background: #fdf3e6; border-left: 3px solid #CFA571; border-radius: 0 4px 4px 0; padding: 5px 8px; font-size: 8.5px; color: #6b3a0a; margin-top: 5px; line-height: 1.45; }
 #pdf-summary .pdf-footer {
-  border-top: 1px solid #e2d9ce; padding-top: 10px; margin-top: 8px;
-  font-size: 10px; color: #a09080; display: flex; justify-content: space-between;
+  border-top: 1px solid #e2d9ce; padding-top: 6px; margin-top: 6px;
+  font-size: 9px; color: #a09080; display: flex; justify-content: space-between;
 }
 #pdf-summary .pdf-note {
   background: #fdf3e3; border-left: 3px solid #CFA571; border-radius: 0 5px 5px 0;
@@ -2023,10 +2080,11 @@ sbaRecalc();
   border: 1px solid #a07840;
   border-radius: 6px;
   background: #fdf3e3;
-  margin-top: 16px; padding: 12px 16px;
-  font-size: 11px; color: #4a3a2a; line-height: 1.7;
+  margin-top: 10px; padding: 8px 12px;
+  font-size: 9.5px; color: #4a3a2a; line-height: 1.5;
+  page-break-inside: avoid; break-inside: avoid;
 }
-#pdf-summary .pdf-disclaimer strong { color: #441D1F; font-weight: 700; font-size: 12px; display: block; margin-bottom: 4px; }
+#pdf-summary .pdf-disclaimer strong { color: #441D1F; font-weight: 700; font-size: 10px; display: block; margin-bottom: 2px; }
 #pdf-summary .pdf-watermark {
   position: fixed; top: 50%; left: 50%;
   transform: translate(-50%, -50%) rotate(-35deg);
@@ -2111,8 +2169,13 @@ sbaRecalc();
       <div class="pdf-section-title" style="margin-top:14px;">Scenario Comparison</div>
       <div id="pdf-scenarios"></div>
 
-      <div class="pdf-section-title" style="margin-top:14px;">Model Health Check</div>
-      <div id="pdf-health"></div>
+      <div class="pdf-loan">
+        <div class="pdf-section-title" style="margin-top:14px;">Loan Detail &mdash; How We Got to the Monthly Payment</div>
+        <div class="pdf-loan-uses" id="pdf-loan-uses"></div>
+        <table class="pdf-loan-tbl" id="pdf-loan-tbl"></table>
+        <div class="pdf-loan-foot" id="pdf-loan-foot"></div>
+        <div class="pdf-loan-rule" id="pdf-loan-rule" style="display:none;"></div>
+      </div>
     </div>
   </div>
 
