@@ -458,6 +458,15 @@
         <input type="range" id="sl-roy" min="0" max="6" step="0.5" value="6">
       </div>
       <div style="font-size:10px;color:rgba(68,29,31,0.6);margin-top:2px;">Calculated on net sales (after discounts)</div>
+
+      <div class="sb-control" style="margin-top:14px;">
+        <div class="sb-ctrl-header">
+          <span class="sb-ctrl-name">Merchant fees</span>
+          <input class="sb-ctrl-val sb-val-input" id="lbl-merch" type="text" value="4.00%">
+        </div>
+        <input type="range" id="sl-merch" min="0" max="8" step="0.05" value="4">
+      </div>
+      <div style="font-size:10px;color:rgba(68,29,31,0.6);margin-top:2px;">Card processing, charged on net sales</div>
     </div>
 
     <div class="sb-divider"></div>
@@ -543,7 +552,7 @@
             <tr class="sub"><td>Labor</td><td id="p-comp">—</td></tr>
             <tr class="sub"><td>Advertising &amp; marketing (1% of net)</td><td id="p-ad">—</td></tr>
             <tr class="sub"><td>Royalties</td><td id="p-roy">—</td></tr>
-            <tr class="sub"><td>Merchant fees (2.75% of net)</td><td id="p-merch">—</td></tr>
+            <tr class="sub"><td><span id="p-merch-lbl">Merchant fees (4.00% of net)</span></td><td id="p-merch">—</td></tr>
             <tr class="sub"><td>Base Rent <span class="info-dot">i<span class="tip"><b>Base rent only — the negotiable part of the lease.</b> <b>Fixed $</b>: annual base rent; leave $0 if you own the property. <b>% of Sales</b>: percentage rent — base rent is calculated as your entered percentage of the selected sales basis, plus any fixed additional rent, per your lease or LOI. Enter NNN separately on the line below.</span></span>&nbsp; <button type="button" class="chart-tab-btn active" id="rent-mode-fixed" onclick="setRentMode('fixed')">Fixed $</button> <button type="button" class="chart-tab-btn" id="rent-mode-pct" onclick="setRentMode('pct')">% of Sales</button></td><td><input class="pnl-input" id="in-rent" type="text" value="$0" oninput="liveComma(this)" onblur="fmtInput(this)" onfocus="stripInput(this)" onchange="update()"><span id="p-rent-calc" style="display:none;">—</span></td></tr>
             <tr class="sub" id="row-rentpct" style="display:none;"><td style="padding-left:34px;">Rent % <span class="info-dot">i<span class="tip"><b>Percentage rent.</b> Rent equals this percentage of the selected sales basis, payable monthly. <b>Gross</b>: all sales before discounts — the larger base, favors the landlord. <b>Net</b>: gross sales less discounts and comps — the smaller base, favors the tenant. Because rent moves with revenue, the Bear/Base/Bull scenarios and multi-year projections flex rent automatically.</span></span>&nbsp; <button type="button" class="chart-tab-btn active" id="rent-basis-gross" onclick="setRentBasis('gross')">Gross sales</button> <button type="button" class="chart-tab-btn" id="rent-basis-net" onclick="setRentBasis('net')">Net sales</button> <span class="edit-hint">✎</span></td><td><input class="pnl-input" id="in-rentpct" type="text" value="10.0%" onblur="fmtPctInput(this)" onfocus="stripInput(this)" onchange="update()"></td></tr>
             <tr class="sub" id="row-rentaddl" style="display:none;"><td style="padding-left:34px;">Additional rent (fixed $/yr) <span class="info-dot">i<span class="tip"><b>Fixed additional rent.</b> Any flat amount owed on top of percentage rent. Enter the annual total — e.g. $5,000 per quarter is $20,000 per year.</span></span> <span class="edit-hint">✎</span></td><td><input class="pnl-input" id="in-rentaddl" type="text" value="$20,000" oninput="liveComma(this)" onblur="fmtInput(this)" onfocus="stripInput(this)" onchange="update()"></td></tr>
@@ -892,6 +901,9 @@ function liveComma(el) {
   update();
 }
 
+// Merchant processing rate (%) from the sidebar; falls back to 4% before the DOM is ready
+function merchRate() { const el = $('sl-merch'); return el ? +el.value : 4; }
+
 function calc(days, dayrev, disc, cogs, laborPct, roy, royOnSales, rent, dues, occ, prof, truck, misc, ptax) {
   const rev = days * dayrev;                      // gross sales
   const discAmt = rev * (disc || 0) / 100;         // discounts
@@ -901,7 +913,7 @@ function calc(days, dayrev, disc, cogs, laborPct, roy, royOnSales, rent, dues, o
   const royAmt = netSales * roy / 100;             // royalties on NET sales
   const compAmt = rev * laborPct / 100;            // labor on GROSS sales
   const adAmt = netSales * 0.01;                   // advertising & marketing on NET sales
-  const merch = netSales * 0.0275;                 // merchant fees on NET sales
+  const merch = netSales * merchRate() / 100;      // merchant fees on NET sales (editable)
   let rentVar = 0, rentFix = rent ?? 0;
   if (typeof rentMode !== 'undefined' && rentMode === 'pct') {
     const rentBase = (typeof rentBasis !== 'undefined' && rentBasis === 'net') ? netSales : rev;
@@ -1136,6 +1148,7 @@ bindSlider('sl-disc',   'lbl-disc',   v => v + '%',                             
 bindSlider('sl-cogs',   'lbl-cogs',   v => v + '%',                                  parseNum, 0, 75,    v => v > 40 ? 'warn' : 'ok');
 bindSlider('sl-labor',  'lbl-labor',  v => v + '%',                                  parseNum, 0, 40,    v => v > 25 ? 'warn' : 'ok');
 bindSlider('sl-roy',    'lbl-roy',    v => (+v).toFixed(1) + '%',                    parseNum, 0, 6);
+bindSlider('sl-merch',  'lbl-merch',  v => (+v).toFixed(2) + '%',                    parseNum, 0, 8);
 
 function showTab(id, btn) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -1292,6 +1305,7 @@ function update() {
   $('p-ad').textContent = fmtD(-r.adAmt);
   $('p-roy').textContent = fmtD(-r.royAmt);
   $('p-merch').textContent = fmtD(-r.merch);
+  $('p-merch-lbl').textContent = 'Merchant fees (' + merchRate().toFixed(2) + '% of net)';
   $('p-truck').textContent = fmtD(-r.truck);
   $('p-prin').textContent = fmtD(-s.loanPrin);
   const ncf = r.net - s.loanPrin;
@@ -1407,13 +1421,14 @@ function redraw(tab) {
 }
 
 function resetDefaults() {
-  const defaults = { 'sl-dayrev':0, 'sl-disc':0, 'sl-cogs':0, 'sl-labor':0, 'sl-roy':6 };
+  const defaults = { 'sl-dayrev':0, 'sl-disc':0, 'sl-cogs':0, 'sl-labor':0, 'sl-roy':6, 'sl-merch':4 };
   Object.entries(defaults).forEach(([id, val]) => { $(id).value = val; });
   $('lbl-dayrev').value = '$0';
   $('lbl-disc').value   = '0%';
   $('lbl-cogs').value   = '0%';
   $('lbl-labor').value  = '0%';
   $('lbl-roy').value    = '6.0%';
+  $('lbl-merch').value  = '4.00%';
   $('in-rent').value = '$0';
   $('in-rentpct').value = '10.0%';
   $('in-rentaddl').value = '$20,000';
@@ -1537,6 +1552,7 @@ function printSummary() {
   $('pdf-p-ad').textContent   = fmtD(-r.adAmt);
   $('pdf-p-roy').textContent  = fmtD(-r.royAmt);
   $('pdf-p-merch').textContent = fmtD(-r.merch);
+  $('pdf-p-merch-lbl').textContent = 'Merchant fees (' + merchRate().toFixed(2) + '% of net)';
   $('pdf-p-rent').textContent = fmtD(-r.rent);
   $('pdf-p-nnn').textContent = fmtD(-r.nnn);
   $('pdf-p-ptax').textContent = fmtD(-r.ptax);
@@ -1561,6 +1577,7 @@ function printSummary() {
     { label: 'COGS %',           val: s.cogs + '% of gross' },
     { label: 'Labor % (gross)',  val: r.laborPct.toFixed(1) + '%' },
     { label: 'Royalty rate',     val: s.roy.toFixed(1) + '% on net sales' },
+    { label: 'Merchant fees',    val: merchRate().toFixed(2) + '% on net sales' },
     { label: 'Base rent',        val: rentMode === 'pct' ? parseInput('in-rentpct').toFixed(1) + '% of ' + (rentBasis === 'net' ? 'net' : 'gross') + ' + ' + fmtP(parseInput('in-rentaddl')) + '/yr' : fmtP(r.rent) + '/yr' },
     { label: 'NNN',              val: fmtP(r.nnn) + '/yr' },
     { label: 'Monthly loan pmt', val: '$' + Math.round(s.loanPay/12).toLocaleString() + '/mo' },
@@ -1782,7 +1799,7 @@ function exportSBA() {
     ["  Owner's compensation", _d(sba.ownerComp) + ' per year', '[Your planned salary / draw]'],
     ['  Royalty fee', s.roy + '% of net sales', '[Per the Franchise Disclosure Document]'],
     ['  Marketing fund', '1% of net sales', '[Per the FDD]'],
-    ['  Bank & credit card fees', '2.75% of net sales', '[Merchant processing rate]'],
+    ['  Bank & credit card fees', merchRate().toFixed(2) + '% of net sales', '[Merchant processing rate]'],
     ['  Base rent', rentMode === 'pct' ? parseInput('in-rentpct').toFixed(1) + '% of ' + (rentBasis === 'net' ? 'net' : 'gross') + ' sales + ' + _d(parseInput('in-rentaddl')) + ' per year additional  (' + _d(r1.rent) + ' Year 1)' : _d(s.rent) + ' per year', rentMode === 'pct' ? '[Percentage rent per your lease/LOI \u2014 rent scales with sales in each projected year]' : '[Your lease: negotiated base rent]'],
     ['  NNN (taxes, insurance, CAM)', _d(r1.nnn) + ' per year', '[Triple net pass-throughs billed by the landlord]'],
     ['  Property & personal property tax', _d(s.ptax) + ' per year', '[Real-estate tax if owned + equipment/personal-property tax; $0 if already in NNN]'],
@@ -2158,7 +2175,7 @@ sbaRecalc();
         <tr class="sub"><td>Labor</td><td id="pdf-p-comp">—</td></tr>
         <tr class="sub"><td>Advertising &amp; marketing (1% of net)</td><td id="pdf-p-ad">—</td></tr>
         <tr class="sub"><td>Royalties</td><td id="pdf-p-roy">—</td></tr>
-        <tr class="sub"><td>Merchant fees (2.75% of net)</td><td id="pdf-p-merch">—</td></tr>
+        <tr class="sub"><td><span id="pdf-p-merch-lbl">Merchant fees (4.00% of net)</span></td><td id="pdf-p-merch">—</td></tr>
         <tr class="sub"><td>Base Rent</td><td id="pdf-p-rent">—</td></tr>
         <tr class="sub"><td>NNN (taxes, insurance, CAM)</td><td id="pdf-p-nnn">—</td></tr>
         <tr class="sub"><td>Property &amp; Personal Property Tax</td><td id="pdf-p-ptax">—</td></tr>
